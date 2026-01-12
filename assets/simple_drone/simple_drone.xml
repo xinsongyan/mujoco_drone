@@ -1,0 +1,59 @@
+<mujoco model="quadcopter">
+  <option gravity="0 0 -9.81" timestep="0.002"/>
+
+  <asset>
+    
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+  </asset>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="-20" elevation="-20" ellipsoidinertia="true"/>
+  </visual>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+<body name="world_frame" pos="0 0 0">
+        <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
+        
+        <geom type="cylinder" fromto="0 0 0 0.4 0 0" size="0.005" rgba="1 0 0 1" contype="0" conaffinity="0"/>
+        
+        <geom type="cylinder" fromto="0 0 0 0 0.41 0" size="0.005" rgba="0 1 0 1" contype="0" conaffinity="0"/>
+        
+        <geom type="cylinder" fromto="0 0 0 0 0 0.4" size="0.005" rgba="0 0 1 1" contype="0" conaffinity="0"/>
+    </body>
+
+    <body name="drone" pos="0 0 0.1">
+      <freejoint/>
+
+      <geom name="chassis" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 1" mass="1"/>
+      
+  
+      <body name="rotor_fr" pos="0.1 -0.1 0">
+        <joint name="j_fr" type="hinge" axis="0 0 1"/> 
+        <geom type="cylinder" size=".05 .01" rgba="0 0.8 0 0.8"/> <site name="motor_fr" pos="0 0 0"/>
+      </body>
+
+      <body name="rotor_fl" pos="0.1 0.1 0">
+        <joint name="j_fl" type="hinge" axis="0 0 1"/>
+        <geom type="cylinder" size=".05 .01" rgba="0 0.8 0 0.8"/> <site name="motor_fl" pos="0 0 0"/>
+      </body>
+
+      <body name="rotor_br" pos="-0.1 -0.1 0">
+        <joint name="j_br" type="hinge" axis="0 0 1"/>
+        <geom type="cylinder" size=".05 .01" rgba="0.8 0 0 0.8"/> <site name="motor_br" pos="0 0 0"/>
+      </body>
+
+      <body name="rotor_bl" pos="-0.1 0.1 0">
+        <joint name="j_bl" type="hinge" axis="0 0 1"/>
+        <geom type="cylinder" size=".05 .01" rgba="0.8 0 0 0.8"/> <site name="motor_bl" pos="0 0 0"/>
+      </body>
+
+    </body>
+
+  </worldbody>
+</mujoco>

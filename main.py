@@ -18,9 +18,9 @@ from user_command import UserCommand
 
 class Drone: 
     def __init__(self):
-        self.xml_path = os.path.join('skydio_x2', 'scene_x2.xml')
+        self.xml_path = os.path.join('assets', 'skydio_x2', 'scene_x2.xml')
         print(f"xml_path: {self.xml_path} ")
-        
+        input()
         self.m = mujoco.MjModel.from_xml_path(self.xml_path)
         self.d = mujoco.MjData(self.m)
 
@@ -29,12 +29,12 @@ class Drone:
         # print(f"Body ID: {body_id}, Inertia Diagonal: {inertia_diag}")
         # input()
         
-        self.user_cmd = UserCommand()
+        # self.user_cmd = UserCommand()
         self.state_estimator = StateEstimator(self.m, self.d)
         
         
         self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
-        self.se3_controller = SE3Controller(state_estimator=self.state_estimator, user_cmd=self.user_cmd)
+        self.se3_controller = SE3Controller(state_estimator=self.state_estimator, user_cmd=None)
 
 
 
@@ -112,4 +112,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
