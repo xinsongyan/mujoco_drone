@@ -30,7 +30,7 @@
     <body name="drone" pos="0 0 0.1">
       <freejoint/>
 
-      <geom name="chassis" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 0.5" mass="1"/>
+      <geom name="chassis" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 0.5" mass="0.25"/>
 
       <site name="imu_site" type="box" size="0.01 0.01 0.01" pos="0 0 0" rgba="1 0 0 1"/>
 
@@ -40,28 +40,28 @@
 
       <body name="rotor_fr" pos="0.1 -0.1 0">
         <joint name="j_fr" type="hinge" axis="0 0 1"/>
-        <inertial pos="0 0 0" mass="0.005" diaginertia="5e-6 5e-6 9e-6"/>
+        <inertial pos="0 0 0" mass="0.25" diaginertia="5e-6 5e-6 9e-6"/>
         <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
         <site name="motor_fr" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
       </body>
 
       <body name="rotor_fl" pos="0.1 0.1 0">
         <joint name="j_fl" type="hinge" axis="0 0 1"/>
-        <inertial pos="0 0 0" mass="0.005" diaginertia="5e-6 5e-6 9e-6"/>
+        <inertial pos="0 0 0" mass="0.25" diaginertia="5e-6 5e-6 9e-6"/>
         <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
         <site name="motor_fl" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
       </body>
 
       <body name="rotor_rr" pos="-0.1 -0.1 0">
         <joint name="j_rr" type="hinge" axis="0 0 1"/>
-        <inertial pos="0 0 0" mass="0.005" diaginertia="5e-6 5e-6 9e-6"/>
+        <inertial pos="0 0 0" mass="0.25" diaginertia="5e-6 5e-6 9e-6"/>
         <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
         <site name="motor_rr" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
       </body>
 
       <body name="rotor_rl" pos="-0.1 0.1 0">
         <joint name="j_rl" type="hinge" axis="0 0 1"/>
-        <inertial pos="0 0 0" mass="0.005" diaginertia="5e-6 5e-6 9e-6"/>
+        <inertial pos="0 0 0" mass="0.25" diaginertia="5e-6 5e-6 9e-6"/>
         <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
         <site name="motor_rl" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
       </body>
