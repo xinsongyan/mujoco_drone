@@ -49,7 +49,9 @@
       <geom name="rotor2" class="rotor" pos=".14 -.18 .065" mass=".25"/>
       <geom name="rotor3" class="rotor" pos="-.14 .18 .065" mass=".25"/>
       <geom name="rotor4" class="rotor" pos=".14 .18 .065" mass=".25"/>
+      
       <geom size=".16 .04 .02" pos="0 0 0.02" type="ellipsoid" mass=".325" class="visual" material="invisible"/>
+      
       <site name="thrust1" pos="-.14 -.18 .065"/>
       <site name="thrust2" pos=".14 -.18 .065"/>
       <site name="thrust3" pos="-.14 .18 .065"/>
