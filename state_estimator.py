@@ -13,7 +13,7 @@ class StateEstimator:
         return np.sum(self.m.body_mass)
     
     @property
-    def base_id(self, base_name="x2"):
+    def base_id(self, base_name="chassis"):
         id_ = mujoco.mj_name2id(self.m, mujoco.mjtObj.mjOBJ_BODY, base_name)
         if id_ == -1:
             raise ValueError(f"Body name '{base_name}' not found in the model.")
@@ -22,6 +22,19 @@ class StateEstimator:
     @property
     def base_pos(self):
         return self.d.qpos[:3]
+
+    @property
+    def x(self):
+        return self.d.qpos[0]
+    
+    @property
+    def y(self):
+        return self.d.qpos[1]
+    
+    @property
+    def z(self):
+        return self.d.qpos[2]
+    
 
     @property
     def base_quat(self):

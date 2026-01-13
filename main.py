@@ -20,7 +20,7 @@ class Drone:
     def __init__(self):
         self.xml_path = os.path.join('assets', 'skydio_x2', 'scene_x2.xml')
         print(f"xml_path: {self.xml_path} ")
-        input()
+
         self.m = mujoco.MjModel.from_xml_path(self.xml_path)
         self.d = mujoco.MjData(self.m)
 
@@ -34,7 +34,7 @@ class Drone:
         
         
         self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
-        self.se3_controller = SE3Controller(state_estimator=self.state_estimator, user_cmd=None)
+        # self.se3_controller = SE3Controller(state_estimator=self.state_estimator, user_cmd=None)
 
 
 
@@ -53,13 +53,13 @@ class Drone:
         # print("Base Quaternion:", [f"{x:.3f}" for x in self.state_estimator.base_quat])
         # print("Base RPY:", [f"{x:.3f}" for x in self.state_estimator.base_rpy])
 
-        # thrust_total, torque_roll, torque_pitch, torque_yaw = self.stabilisation_controller.compute_control()
+        thrust_total, torque_roll, torque_pitch, torque_yaw = self.stabilisation_controller.compute_control()
 
         # thrust_total, torque_roll, torque_pitch, torque_yaw = self.se3_controller.compute_control()
-        f, M = self.se3_controller.tracking_control(pos_des=[0.5, 0.5, 0.5], heading_des=[1, 0, 0])
+        # f, M = self.se3_controller.tracking_control(pos_des=[0.5, 0.5, 0.5], heading_des=[1, 0, 0])
 
-
-        motor_cmd = self.cal_motor_cmd(f, M[0], M[1], M[2])
+        motor_cmd = self.cal_motor_cmd(thrust_total, torque_roll, torque_pitch, torque_yaw)
+        # motor_cmd = self.cal_motor_cmd(f, M[0], M[1], M[2])
         # print(f"Motor Commands: {motor_cmd}")
 
         self.set_motor_cmd(motor_cmd)

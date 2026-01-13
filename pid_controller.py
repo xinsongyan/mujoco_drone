@@ -14,7 +14,7 @@ class PIDController:
 
     def compute_control(self):
         # Compute control signals based on the current state
-        thrust_total = (self.pid_alt(self.state_estimator.alt) + 9.81) * self.state_estimator.mass/(np.cos(self.state_estimator.roll) * np.cos(self.state_estimator.pitch))
+        thrust_total = (self.pid_alt(self.state_estimator.z) + 9.81) * self.state_estimator.total_mass/(np.cos(self.state_estimator.roll) * np.cos(self.state_estimator.pitch))
         torque_roll = self.pid_roll(self.state_estimator.roll)
         torque_pitch = self.pid_pitch(self.state_estimator.pitch)
         torque_yaw = self.pid_yaw(self.state_estimator.yaw)
