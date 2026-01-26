@@ -74,6 +74,15 @@ class StateEstimator:
         return self.d.qvel[3:6]
 
     @property
+    def v(self):
+        return self.base_vel_lin_global
+    
+    @property
+    def w(self):
+        return self.base_vel_ang_local
+    
+
+    @property
     def base_vel_lin_local(self):
         return self.R.T @ self.base_vel_lin_global
     

@@ -10,7 +10,7 @@ import time
 from state_estimator import StateEstimator
 
 from pid_controller import PIDController
-
+from flight_control import FlightControl
 
 
 
@@ -33,7 +33,9 @@ class SimpleDrone:
         self.state_estimator = StateEstimator(self.m, self.d)
 
         self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
-
+        
+        self.flight_control = FlightControl(target_x=0.0, target_y=0.0, target_z=0.5, target_yaw=0.0, state_estimator=self.state_estimator)
+        # todo: try to add x y regulation on PID controller, take flight control as reference
 
     def set_pos(self, pos):
         # Set the position of the drone's base
@@ -50,11 +52,14 @@ class SimpleDrone:
         # print("Base Quaternion:", [f"{x:.3f}" for x in self.state_estimator.base_quat])
         # print("Base RPY:", [f"{x:.3f}" for x in self.state_estimator.base_rpy])
         
-        thrust_total, torque_roll, torque_pitch, torque_yaw = self.stabilisation_controller.compute_control()
+        # thrust_total, torque_roll, torque_pitch, torque_yaw = self.stabilisation_controller.compute_control()
+        thrust_total, torque_roll, torque_pitch, torque_yaw = self.flight_control.compute_control()
 
-        f_fr, f_fl, f_rr, f_rl = self.cal_motor_cmd(thrust_total, torque_roll, torque_pitch, torque_yaw)
+        motor_cmd = self.cal_motor_cmd(thrust_total, torque_roll, torque_pitch, torque_yaw)
 
-        self.set_motor_cmd(f_fr, f_fl, f_rr, f_rl)
+        self.set_motor_cmd(motor_cmd)
+
+
 
 
     def cal_motor_cmd(self, T, tau_x, tau_y, tau_z):
@@ -63,14 +68,11 @@ class SimpleDrone:
         f_fr = (T - tau_x/dx - tau_y/dy - tau_z/k) / 4.0
         f_rl = (T + tau_x/dx + tau_y/dy - tau_z/k) / 4.0
         f_fl = (T + tau_x/dx - tau_y/dy + tau_z/k) / 4.0
-        return f_fr, f_fl, f_rr, f_rl
+        return np.array([f_rr, f_fr, f_rl, f_fl])
 
-    def set_motor_cmd(self, f_fr, f_fl, f_rr, f_rl):
+    def set_motor_cmd(self, motor_cmd):
         # Set the motor commands to the actuators
-        self.d.ctrl[0] = np.clip(f_fr, 0, 10) # FR
-        self.d.ctrl[1] = np.clip(f_fl, 0, 10) # FL
-        self.d.ctrl[2] = np.clip(f_rr, 0, 10) # RR
-        self.d.ctrl[3] = np.clip(f_rl, 0, 10) # RL
+        self.d.ctrl[:4] = motor_cmd
 
 
 
