@@ -1,5 +1,3 @@
-
-
 from re import X
 import numpy as np
 # from simple_pid import PID
@@ -84,17 +82,17 @@ class FlightControl:
         self.target_yaw = target_yaw
 
         # Altitude PID (Controls Thrust)
-        self.pid_z = PID(1.0, 0.1, 0.5)
+        self.pid_z = PID(50.0, 2.0, 5.0, out_min=-20.0, out_max=20.0)
         
         # Position PIDs (Output: Desired Angles)
         # Note: Limits clamp the max lean angle (e.g., 0.5 rad ~ 28 degrees)
-        self.pid_x = PID(5, 0.1, 0)
-        self.pid_y = PID(5, 0.1, 0)
+        self.pid_x = PID(0, 0, 0.1, out_min=-0.1, out_max=0.1)
+        self.pid_y = PID(0, 0, 0.1, out_min=-0.1, out_max=0.1)
         
         # Attitude PIDs (Output: Motor Mixing Moments)
-        self.pid_roll = PID(5.0, 0.1, 0.0)
-        self.pid_pitch = PID(5.0, 0.1, 0.0)
-        self.pid_yaw = PID(5.0, 0.1, 0.0)
+        self.pid_roll = PID(1.0, 0.0, 0.1)
+        self.pid_pitch = PID(1.0, 0.0, 0.1)
+        self.pid_yaw = PID(1.0, 0.0, 0.1)
 
     def compute_control(self):
         # Get current state from estimator
@@ -104,17 +102,14 @@ class FlightControl:
         # --- B. OUTER LOOP (Position Control) ---
         # 1. Altitude Control
         # Gravity compensation (approx 10N for 1kg) + PID adjustment
-        thrust_base = 9.81 
-        # thrust_adj = 5*(self.target_z-self.se.z) - 1*self.se.v[2]
+        thrust_base = 9.81 * self.se.total_mass
         thrust_adj = self.pid_z.update(self.target_z, self.se.z, dt=0.002)
-        total_thrust = (thrust_base + thrust_adj) * self.se.total_mass
+        total_thrust = thrust_base + thrust_adj
 
         # 2. XY Position Control -> Desired Lean Angles
         # To move +X (Forward), we need negative Pitch (Nose down)
-        # To move +Y (Left), we need positive Roll (Right side up)
+        # To move +Y (Left), we need negative Roll (Left side down)
         # (Note: These signs depend on your specific frame, easy to flip if wrong)
-        # des_pitch = 5 * (self.target_x - self.se.x) #- 0.1*self.se.v[1]
-        # des_roll  = - 5*(self.target_y - self.se.y) #- 0.1*self.se.v[0]
         des_pitch = self.pid_x.update(self.target_x, self.se.x, dt=0.002)
         des_roll  = -self.pid_y.update(self.target_y, self.se.y, dt=0.002)
 
