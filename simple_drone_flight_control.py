@@ -16,6 +16,7 @@ from state_estimator import StateEstimator
 from pid_controller import PIDController
 from flight_control import FlightControl
 from Debug.general_dashboard import GeneralDashboard
+from Debug.window_utils import place_dashboard_on_monitor
 
 
 
@@ -40,8 +41,8 @@ class SimpleDrone:
 
         # self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
         
-        self.flight_control = FlightControl(target_x=0.0, 
-                                            target_y=0.0, 
+        self.flight_control = FlightControl(target_x=0.2, 
+                                            target_y=0.2, 
                                             target_z=0.3, 
                                             target_yaw=0.0, 
                                             state_estimator=self.state_estimator)
@@ -85,11 +86,15 @@ class SimpleDrone:
         self.d.ctrl[:4] = motor_cmd
 
 
+# dashboard placement helper moved to Debug/window_utils.py
 
 
 
-def main():
-    # Initialize PyQt5 app for dashboard
+
+
+
+if __name__ == "__main__":
+# Initialize PyQt5 app for dashboard
     app = QApplication(sys.argv)
     
     # Configure position and control plots
@@ -97,42 +102,61 @@ def main():
         {"title": "Drone Position X (m)", "color": "r"},
         {"title": "Drone Position Y (m)", "color": "g"},
         {"title": "Drone Position Z (m)", "color": "b"},
-        {"title": "Thrust Total (N)", "color": "m"}
+        {"title": "Thrust Total (N)", "color": "m"},
+        {"title": "Drone Roll (deg)", "color": "r"},
+        {"title": "Drone Pitch (deg)", "color": "g"},
+        {"title": "Drone Yaw (deg)", "color": "b"}
     ]
     
     dashboard = GeneralDashboard(position_plots)
     dashboard.show()
+    # Position the dashboard using a helper (choose monitor with monitor_index)
+    place_dashboard_on_monitor(dashboard, app, monitor_index=-1, center=True)
+
+
+    paused = False
+    def key_callback(keycode):
+        if chr(keycode) == ' ':
+            global paused
+            paused = not paused
+            
 
     drone = SimpleDrone()
     
-    with mujoco.viewer.launch_passive(drone.m, drone.d) as viewer:
+    
+
+
+    with mujoco.viewer.launch_passive(drone.m, drone.d, key_callback=key_callback) as viewer:
         step_count = 0
 
         while viewer.is_running():
 
             print(f"Time: {drone.d.time:.3f}s")
             
-            drone()
-            
+            # Check if the Spacebar (or UI button) has toggled the pause state
+
+            if not paused:
+                # This displays a single line of text at the bottom
+                viewer.status_msg = f"Time: {drone.d.time:.3f} | Paused: {paused}"
         
+                drone()
 
-            mujoco.mj_step(drone.m, drone.d)
+                mujoco.mj_step(drone.m, drone.d)
 
-            viewer.sync()
+                # Always sync the viewer to process events / render
+                viewer.sync()
 
-            # Update dashboard every 8 steps
-            if step_count % 10 == 0:
-                pos_x = drone.d.qpos[0]
-                pos_y = drone.d.qpos[1]
-                pos_z = drone.d.qpos[2]
-                thrust = drone.thrust_total
-                
-                dashboard.update_dashboard([pos_x, pos_y, pos_z, thrust], drone.d.time)
-                app.processEvents()
+                # Update dashboard every 10 steps
+                if step_count % 10 == 0:
+                    pos_x = drone.d.qpos[0]
+                    pos_y = drone.d.qpos[1]
+                    pos_z = drone.d.qpos[2]
+                    thrust = drone.thrust_total
+                    roll, pitch, yaw = drone.state_estimator.base_rpy
 
-            step_count += 1
-            time.sleep(drone.m.opt.timestep) 
+        
+                    dashboard.update_dashboard([pos_x, pos_y, pos_z, thrust, np.degrees(roll), np.degrees(pitch), np.degrees(yaw)], drone.d.time)
+                    app.processEvents()
 
-
-if __name__ == "__main__":
-    main()
+                step_count += 1
+                time.sleep(drone.m.opt.timestep) 
