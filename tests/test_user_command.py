@@ -25,7 +25,7 @@ class FakeGamepadReader:
 
 @pytest.fixture()
 def patch_gamepad(monkeypatch):
-    import user_command as uc
+    from mujoco_drone.input import user_command as uc
 
     fake_holder = types.SimpleNamespace(instance=None)
 
@@ -40,7 +40,7 @@ def patch_gamepad(monkeypatch):
 
 
 def make_user_command_with_axes(monkeypatch, axes):
-    import user_command as uc
+    from mujoco_drone.input import user_command as uc
 
     def factory(*args, **kwargs):
         return FakeGamepadReader(axes=axes)
@@ -50,7 +50,7 @@ def make_user_command_with_axes(monkeypatch, axes):
 
 
 def test_constructor_starts_reader(patch_gamepad):
-    import user_command as uc
+    from mujoco_drone.input import user_command as uc
 
     cmd = uc.UserCommand()
     assert patch_gamepad.instance is not None
@@ -111,7 +111,7 @@ def test_pitch(monkeypatch, axes, lim, expected):
 
 
 def test_stop_calls_reader_stop(patch_gamepad):
-    import user_command as uc
+    from mujoco_drone.input import user_command as uc
 
     cmd = uc.UserCommand()
     cmd.stop()

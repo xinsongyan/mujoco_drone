@@ -4,7 +4,7 @@ from simple_pid import PID
 
 
 
-class FlightControl:
+class CascadedController:
     def __init__(self, target_x=0.0, target_y=0.0, target_z=0.5, target_yaw=0.0, state_estimator=None):
         self.se = state_estimator
         self.target_x = target_x
