@@ -81,11 +81,17 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
     sphere_id = data.geom("green_sphere").id
     sphere_pos = data.geom_xpos[sphere_id]
     sphere_mat = data.geom_xmat[sphere_id] # This is the 3x3 rotation matrix, flattened
+    # Scale arrow length with velocity
+    sphere_velocity = get_geom_speed(model, data, "green_sphere")
+    arrow_length = 0.1 + 0.5 * sphere_velocity
     if viewer.user_scn.ngeom < viewer.user_scn.maxgeom:
       viewer.user_scn.ngeom += 1 # Increment the number of geoms
       mujoco.mjv_initGeom(viewer.user_scn.geoms[viewer.user_scn.ngeom-1],
-                      mujoco.mjtGeom.mjGEOM_ARROW, np.array([0.01, 0.01, 0.5]), # size
-                      sphere_pos, sphere_mat, np.array((1,0,0,1)).astype(np.float32))
+                      mujoco.mjtGeom.mjGEOM_ARROW, 
+                      np.array([0.01, 0.01, arrow_length]), # size
+                      sphere_pos, 
+                      sphere_mat, 
+                      np.array((1,0,0,1)).astype(np.float32))
 
     viewer.sync()
     time.sleep(model.opt.timestep) # Control simulation speed
