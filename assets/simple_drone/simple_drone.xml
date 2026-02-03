@@ -71,10 +71,10 @@
   </worldbody>
 
   <actuator>
-    <motor name="motor_rr" site="motor_rr" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-100 100"/>
-    <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-100 100"/>
-    <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-100 100"/>
-    <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-100 100"/>
+    <motor name="motor_rr" site="motor_rr" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
   </actuator>
 
 

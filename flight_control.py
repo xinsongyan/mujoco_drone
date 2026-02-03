@@ -17,13 +17,54 @@ class FlightControl:
         
         # Position PIDs (Output: Desired Angles)
         # Note: Limits clamp the max lean angle (e.g., 0.5 rad ~ 28 degrees)
-        self.pid_x = PID(2.0, 0.1, 1.5, setpoint=target_x, output_limits=(-0.4, 0.4), sample_time=0.002)
-        self.pid_y = PID(2.0, 0.1, 1.5, setpoint=target_y, output_limits=(-0.4, 0.4), sample_time=0.002)
+        self.pid_x = PID(5.0, 1.5, 1.5, setpoint=target_x, output_limits=(-0.5, 0.5), sample_time=0.002)
+        self.pid_y = PID(5.0, 1.5, 1.5, setpoint=target_y, output_limits=(-0.5, 0.5), sample_time=0.002)
         
         # Attitude PIDs (Output: Motor Mixing Moments)
-        self.pid_roll = PID(15.0, 1.0, 1.5, setpoint=0.0, output_limits=(-10.0, 10.0), sample_time=0.002)
-        self.pid_pitch = PID(15.0, 1.0, 1.5, setpoint=0.0, output_limits=(-10.0, 10.0), sample_time=0.002)
-        self.pid_yaw = PID(15.0, 0.5, 0.1, setpoint=target_yaw, output_limits=(-3.0, 3.0), sample_time=0.002)
+        self.pid_roll = PID(15.0, 2.0, 0.5, setpoint=0.0, output_limits=(-30.0, 30.0), sample_time=0.002)
+        self.pid_pitch = PID(15.0, 2.0, 0.5, setpoint=0.0, output_limits=(-30.0, 30.0), sample_time=0.002)
+        self.pid_yaw = PID(2.0, 0.5, 0.1, setpoint=target_yaw, output_limits=(-3.0, 3.0), sample_time=0.002)
+
+    
+
+
+    def adjust_yaw(self, delta_rad):
+        """Adjust target yaw by delta_rad and update PID setpoint."""
+        self.target_yaw += delta_rad
+        self.pid_yaw.setpoint = self.target_yaw
+
+    def adjust_target_x(self, delta_x):
+        """Adjust target x by delta_x in heading frame and update PID setpoint."""
+        if self.se is None:
+            raise ValueError("State estimator not provided.")
+
+        yaw = self.se.yaw
+        delta_x_global = delta_x * np.cos(yaw)
+        delta_y_global = delta_x * np.sin(yaw)
+
+        self.target_x += delta_x_global
+        self.target_y += delta_y_global
+        self.pid_x.setpoint = self.target_x
+        self.pid_y.setpoint = self.target_y
+
+    def adjust_target_y(self, delta_y):
+        """Adjust target y by delta_y in heading frame and update PID setpoint."""
+        if self.se is None:
+            raise ValueError("State estimator not provided.")
+
+        yaw = self.se.yaw
+        delta_x_global = -delta_y * np.sin(yaw)
+        delta_y_global = delta_y * np.cos(yaw)
+
+        self.target_x += delta_x_global
+        self.target_y += delta_y_global
+        self.pid_x.setpoint = self.target_x
+        self.pid_y.setpoint = self.target_y
+
+    def adjust_target_z(self, delta_z):
+        """Adjust target z by delta_z and update PID setpoint."""
+        self.target_z += delta_z
+        self.pid_z.setpoint = self.target_z
 
     def compute_control(self):
         # Get current state from estimator
@@ -34,23 +75,31 @@ class FlightControl:
         # 1. Altitude Control
         # Gravity compensation (approx 10N for 1kg) + PID adjustment
         thrust_base = 9.81 * self.se.total_mass
-        thrust_adj = self.pid_z(self.se.z)
-        total_thrust = thrust_base + thrust_adj
+        total_thrust = thrust_base + self.pid_z(self.se.z)
 
         # 2. XY Position Control -> Desired Lean Angles
         # To move +X (Forward), we need negative Pitch (Nose down)
         # To move +Y (Left), we need negative Roll (Left side down)
         # (Note: These signs depend on your specific frame, easy to flip if wrong)
-        des_pitch = self.pid_x(self.se.x)
-        des_roll  = -self.pid_y(self.se.y)
+        global_des_pitch = self.pid_x(self.se.x)
+        global_des_roll  = -self.pid_y(self.se.y)
 
+        # 3. COORDINATE TRANSFORMATION 
+        # We rotate the global commands by the negative of the current yaw
+        current_yaw = self.se.yaw
+        
+        # Body-frame setpoints
+        # This aligns the "tilt" command with the way the drone is actually pointing
+        body_des_roll  = global_des_roll * np.cos(current_yaw) + global_des_pitch * np.sin(current_yaw)
+        body_des_pitch = -global_des_roll * np.sin(current_yaw) + global_des_pitch * np.cos(current_yaw)
+            
         # --- C. INNER LOOP (Attitude Control) ---
         # roll_cmd  = 5*(des_roll-self.se.roll) 
         # pitch_cmd = 5*(des_pitch-self.se.pitch) 
         # yaw_cmd   = 5*(self.se.yaw) 
         # Use desired angles as dynamic setpoints for the attitude PIDs
-        self.pid_roll.setpoint = des_roll
-        self.pid_pitch.setpoint = des_pitch
+        self.pid_roll.setpoint = body_des_roll
+        self.pid_pitch.setpoint = body_des_pitch
 
 
         roll_cmd = self.pid_roll(self.se.roll)

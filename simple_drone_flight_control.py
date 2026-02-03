@@ -9,17 +9,23 @@ import transformations as tf
 import time
 from PyQt5.QtWidgets import QApplication
 
+from key_callback import create_key_callback
+
 
 
 from state_estimator import StateEstimator
 
 from pid_controller import PIDController
 from flight_control import FlightControl
+from motor_mixer import MotorMixer
 from Debug.general_dashboard import GeneralDashboard
 from Debug.window_utils import place_dashboard_on_monitor
 
 
 
+
+
+state = {"paused": False, "drone": None}
 
 
 
@@ -41,11 +47,17 @@ class SimpleDrone:
 
         # self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
         
-        self.flight_control = FlightControl(target_x=0.2, 
-                                            target_y=0.2, 
-                                            target_z=0.3, 
-                                            target_yaw=0.0, 
+
+        self.flight_control = FlightControl(target_x=0.0, 
+                                            target_y=0.0, 
+                                            target_z=0.5, 
+                                            target_yaw=np.deg2rad(15), 
                                             state_estimator=self.state_estimator)
+
+        # The physical parameters for the motor mixer
+        dx, dy, k = 0.1, 0.1, 0.02
+        self.motor_mixer = MotorMixer(dx, dy, k)
+
 
     def set_pos(self, pos):
         # Set the position of the drone's base
@@ -54,6 +66,10 @@ class SimpleDrone:
     def set_quat(self, quat):
         # Set the orientation of the drone's base
         self.d.qpos[3:7] = quat
+
+    def set_motor_cmd(self, motor_cmd):
+        # Set the motor commands to the actuators
+        self.d.ctrl[:4] = motor_cmd
 
 
     def __call__(self):
@@ -66,27 +82,11 @@ class SimpleDrone:
         self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.flight_control.compute_control()
         
 
-        motor_cmd = self.cal_motor_cmd(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
+        motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
         self.set_motor_cmd(motor_cmd)
 
 
-
-
-    def cal_motor_cmd(self, T, tau_x, tau_y, tau_z):
-        dx, dy, k = 0.1, 0.1, 0.02 # distance from motor to x axis, y aixs, motor constant
-        f_rr = (T - tau_x/dx + tau_y/dy + tau_z/k) / 4.0
-        f_fr = (T - tau_x/dx - tau_y/dy - tau_z/k) / 4.0
-        f_rl = (T + tau_x/dx + tau_y/dy - tau_z/k) / 4.0
-        f_fl = (T + tau_x/dx - tau_y/dy + tau_z/k) / 4.0
-        return np.array([f_rr, f_fr, f_rl, f_fl])
-
-    def set_motor_cmd(self, motor_cmd):
-        # Set the motor commands to the actuators
-        self.d.ctrl[:4] = motor_cmd
-
-
-# dashboard placement helper moved to Debug/window_utils.py
 
 
 
@@ -114,30 +114,23 @@ if __name__ == "__main__":
     place_dashboard_on_monitor(dashboard, app, monitor_index=-1, center=True)
 
 
-    paused = False
-    def key_callback(keycode):
-        if chr(keycode) == ' ':
-            global paused
-            paused = not paused
-            
-
+    # Initialize the global drone instance, which the key_callback will use.
     drone = SimpleDrone()
+    state["drone"] = drone
+    key_callback = create_key_callback(state)
     
-    
-
-
     with mujoco.viewer.launch_passive(drone.m, drone.d, key_callback=key_callback) as viewer:
         step_count = 0
 
         while viewer.is_running():
 
-            print(f"Time: {drone.d.time:.3f}s")
+            # print(f"Time: {drone.d.time:.3f}s")
             
             # Check if the Spacebar (or UI button) has toggled the pause state
 
-            if not paused:
+            if not state["paused"]:
                 # This displays a single line of text at the bottom
-                viewer.status_msg = f"Time: {drone.d.time:.3f} | Paused: {paused}"
+                viewer.status_msg = f"Time: {drone.d.time:.3f} | Paused: {state['paused']}"
         
                 drone()
 
