@@ -82,7 +82,7 @@ class SimpleDrone:
 
         self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
-        self.set_motor_cmd(self.motor_cmd)
+        self.set_motor_cmd(self.motor_cmd*0)
 
 
 
