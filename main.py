@@ -17,7 +17,7 @@ from mujoco_drone.state_estimator import StateEstimator
 
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.motor_mixer import MotorMixer
-from mujoco_drone.visuals import draw_drone_thrust_arrow
+from mujoco_drone.visuals import draw_drone_thrust_arrow, draw_motor_thrust_arrows
 from debugs.general_dashboard import GeneralDashboard, place_dashboard_on_monitor
 
 
@@ -80,9 +80,9 @@ class SimpleDrone:
         self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.controller.compute_control()
         
 
-        motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
+        self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
-        self.set_motor_cmd(motor_cmd)
+        self.set_motor_cmd(self.motor_cmd)
 
 
 
@@ -138,6 +138,8 @@ if __name__ == "__main__":
                 
                 # Visualize thrust as an arrow from drone center
                 draw_drone_thrust_arrow(viewer, drone)
+                # Visualize thrust for each rotor
+                draw_motor_thrust_arrows(viewer, drone)
 
                 # Always sync the viewer to process events / render
                 viewer.sync()
