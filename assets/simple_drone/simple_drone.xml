@@ -23,20 +23,20 @@
     <body name="world_frame" pos="0 0 0">
       <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
       <geom type="cylinder" fromto="0 0 0 0.4 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0.41 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0.4 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0"/>
       <geom type="cylinder" fromto="0 0 0 0 0 0.4" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0"/>
     </body>
 
-    <body name="drone" pos="0 0 0.1">
+    <body name="base" pos="0 0 0.1">
       <freejoint/>
 
       <geom name="chassis" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 0.5" mass="0.25"/>
 
-      <site name="imu_site" type="box" size="0.01 0.01 0.01" pos="0 0 0" rgba="1 0 0 1"/>
-
-      <geom type="cylinder" fromto="0 0 0 0.1 0 0" size="0.006" rgba="1 0 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0.1 0" size="0.006" rgba="0 1 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0 0.1" size="0.006" rgba="0 0 1 1" contype="0" conaffinity="0"/>
+      <site name="body_frame" pos="0 0 0"/>
+      <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
+      <geom type="cylinder" fromto="0 0 0 0.2 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0.2 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0 0.2" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0"/>
 
       <body name="rotor_rr" pos="-0.1 -0.1 0">
         <joint name="j_rr" type="hinge" axis="0 0 1" damping="0.02"/>
@@ -79,9 +79,9 @@
 
 
   <sensor>
-    <accelerometer name="accel" site="imu_site" noise="0.005" cutoff="100"/>
-    <gyro name="gyro" site="imu_site" noise="0.005" cutoff="100"/>
-    <framequat name="quat" objtype="site" objname="imu_site"/>
+    <accelerometer name="accel" site="body_frame" noise="0.005" cutoff="100"/>
+    <gyro name="gyro" site="body_frame" noise="0.005" cutoff="100"/>
+    <framequat name="quat" objtype="site" objname="body_frame"/>
   </sensor>
 
 

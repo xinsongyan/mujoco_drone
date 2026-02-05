@@ -17,6 +17,7 @@ from mujoco_drone.state_estimator import StateEstimator
 
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.motor_mixer import MotorMixer
+from mujoco_drone.visuals import draw_drone_thrust_arrow
 from debugs.general_dashboard import GeneralDashboard, place_dashboard_on_monitor
 
 
@@ -24,7 +25,6 @@ from debugs.general_dashboard import GeneralDashboard, place_dashboard_on_monito
 
 
 state = {"paused": False, "drone": None}
-
 
 
 class SimpleDrone: 
@@ -135,25 +135,9 @@ if __name__ == "__main__":
 
                 # clear old geoms and add new ones
                 viewer.user_scn.ngeom = 0
-                # modify_scene(viewer.user_scn)
-                # Visualize thrust as an arrow from drone center
-                # Get the current position and orientation of the drone
-                drone_pos = drone.d.qpos[:3] # Base body position
-                print(f"drone_pos: {drone_pos}")
-                # Get rotation matrix from quaternion
-                quat = drone.d.qpos[3:7]
-                drone_mat = tf.quaternion_matrix(quat)[:3, :3].flatten()  # 3x3 rotation matrix, flattened
-                # Scale arrow length with thrust
-                arrow_length = np.clip(drone.thrust_total / 50.0, 0.01, 1.0)
                 
-                if viewer.user_scn.ngeom < viewer.user_scn.maxgeom:
-                  viewer.user_scn.ngeom += 1
-                  mujoco.mjv_initGeom(viewer.user_scn.geoms[viewer.user_scn.ngeom-1],
-                                  mujoco.mjtGeom.mjGEOM_ARROW, 
-                                  np.array([0.01, 0.01, arrow_length]),  # size
-                                  drone_pos, 
-                                  drone_mat, 
-                                  np.array((1, 1, 0, 1)).astype(np.float32))  # Red for thrust
+                # Visualize thrust as an arrow from drone center
+                draw_drone_thrust_arrow(viewer, drone)
 
                 # Always sync the viewer to process events / render
                 viewer.sync()
