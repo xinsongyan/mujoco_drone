@@ -34,21 +34,22 @@ class SE3Controller:
             
         self.se = state_estimator
         # Initialize any necessary parameters for SE(3) control
-        self.k_pos = 10.0  # Position gain
-        self.k_vel = 6.0   # Velocity gain
-        self.k_rot = 20.0   # Rotation gain
-        self.k_omega = 5.0 # Angular velocity gain
+        self.k_pos = 30.0  # Position gain
+        self.k_vel = 5.0   # Velocity gain
+        self.k_rot = 30.0   # Rotation gain
+        self.k_omega = 1.0 # Angular velocity gain
 
 
-        self.m = 1.325  # Mass of the drone in kg
+        self.m = self.se.total_mass  # Mass of the drone in kg
         self.g = np.array([0, 0, -9.81])  # Gravitational acceleration in m/s^2
 
-        self.base_inertia_wrt_body = np.array([[0.06, 0, 0],
-                                                [0, 0.04, 0],
-                                                [0, 0, 0.02]])
+        self.base_inertia_wrt_body = np.array([[0.00226, 0, 0],
+                                                [0, 0.00289, 0],
+                                                [0, 0, 0.00508]])
   
 
-    def tracking_control(self, pos_des=[0.0, 0.0, 0.5], 
+    def tracking_control(self, 
+                         pos_des=[0.0, 0.0, 0.5], 
                          vel_des = np.array([0, 0, 0]), 
                          acc_des = np.array([0, 0, 0]), 
                          heading_des=[1,0,0], 
@@ -73,9 +74,7 @@ class SE3Controller:
                   self.k_vel * (vel_des - self.se.base_vel_lin_global) + \
                   acc_des
         err_pos = pos_des - self.se.base_pos
-        print(f"err_pos: {err_pos}, pos_des: {pos_des}, base_pos: {self.se.base_pos}")
- 
-        print(f"acc_cmd: {acc_cmd}")
+        print(f"Position Error: {err_pos}, Acc Command: {acc_cmd}")
           
         T_cmd  = self.m * acc_cmd - self.m * self.g  # Total force command
         print(f"T_cmd: {T_cmd}", "self.m * acc_cmd :", self.m * acc_cmd , "-self.m * self.g:", -self.m * self.g)

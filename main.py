@@ -13,6 +13,7 @@ from mujoco_drone.input.key_callback import create_key_callback
 
 
 
+from mujoco_drone.se3controller import SE3Controller
 from mujoco_drone.state_estimator import StateEstimator
 
 from mujoco_drone.cascaded_controller import CascadedController
@@ -46,11 +47,14 @@ class SimpleDrone:
         # self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
         
 
-        self.controller = CascadedController(target_x=0.0, 
+        self.pid_controller = CascadedController(target_x=0.0, 
                                             target_y=0.0, 
                                             target_z=0.5, 
                                             target_yaw=np.deg2rad(15), 
                                             state_estimator=self.state_estimator)
+
+        self.se3_controller = SE3Controller(state_estimator=self.state_estimator)   
+
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
@@ -76,13 +80,19 @@ class SimpleDrone:
         # print("Base Quaternion:", [f"{x:.3f}" for x in self.state_estimator.base_quat])
         # print("Base RPY:", [f"{x:.3f}" for x in self.state_estimator.base_rpy])
         
-        # thrust_total, torque_roll, torque_pitch, torque_yaw = self.stabilisation_controller.compute_control()
-        self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.controller.compute_control()
         
+        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.pid_controller.compute_control()
+        # self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
-        self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
+        self.thrust_total, self.torques = self.se3_controller.tracking_control(pos_des=[0.0, 0.0, 0.5], 
+                                                                               vel_des = np.array([0, 0, 0]), 
+                                                                            acc_des = np.array([0, 0, 0]), 
+                                                                            heading_des=[1,1,0], 
+                                                                            omega_des_local = np.array([0, 0, 0]),
+                                                                            omega_dot_des_local = np.array([0, 0, 0]))
+        self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torques[0], self.torques[1], self.torques[2])
 
-        self.set_motor_cmd(self.motor_cmd*0)
+        self.set_motor_cmd(self.motor_cmd)
 
 
 

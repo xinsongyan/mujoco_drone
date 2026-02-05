@@ -229,7 +229,7 @@ in which $\phi$ is $\cos ^{-1}\left(\frac{\operatorname{tr}(R)-1}{2}\right)$ and
 - Moment: $\mathbf{M}^B$
 
 
-# Ground mode
+# Rolling Dynamics
 When the drone rolls on the ground, an additional ground reaction force is exerted on it through the contact between the cage and the ground. 
 <!-- ![alt text](drone_model_3d_ground.drawio.svg) -->
 <img src="drone_model_3d_ground.drawio.svg" width="50%"/>
@@ -312,3 +312,28 @@ The command moment can be:
 $`
 M=-k_{\omega} {\omega}_{cmd}+\omega \times \mathbf{I} \omega
 `$
+
+# Rolling Kinematics
+When the drone is rolling on the ground, we have a very important assumption, there is no sliding between the drone cage and the ground. With this assumption we can move on to drive the rolling kinematics. 
+
+Body frame $\mathcal{B}$ is defined as before. The contact frame $\mathcal{C}$ is defined as follows: the origin $O_C$ is located at the contact point, the orientation $R_C^I$ is the same as the body frame $R_B^I$.
+$$
+R_C = R_B
+$$
+
+when the drone is rolling, since the cage is rigidly attached to the drone, so they are treated as a whole unit, the angular velocity is the same everywhere for the robot. It means that the angular velocity at the body center and at the contact point is the same.
+
+$$
+{\omega}_{B} = {\omega}_{C}
+$$
+
+Assuming the contact point has no slipping, meaning that the linear velocity at the contact point is zero $v_C=0$, the body roates aroudn this point at the instance. So the body center linear velocity can be calculated as: 
+$$
+v_B = \omega_C \times r_{CB}
+$$
+
+Given the linear velocity of the body frame, the angular velocity at the contact point can be calcualted as: 
+$$\boldsymbol{\omega}_C = \frac{\mathbf{r}_{CB} \times \mathbf{v}_B}{|\mathbf{r}_{CB}|^2}$$
+
+since $R_C = R_B$, we have 
+$$\boldsymbol{\omega}_B = \frac{\mathbf{r}_{CB} \times \mathbf{v}_B}{|\mathbf{r}_{CB}|^2}$$
