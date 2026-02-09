@@ -84,7 +84,7 @@ class SimpleDrone:
         # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.pid_controller.compute_control()
         # self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
-        self.thrust_total, self.torques = self.se3_controller.tracking_control(pos_des=[0.0, 0.0, 0.5], 
+        self.thrust_total, self.torques = self.se3_controller.tracking_control(pos_des=[0.1, 0.2, 0.5], 
                                                                                vel_des = np.array([0, 0, 0]), 
                                                                             acc_des = np.array([0, 0, 0]), 
                                                                             heading_des=[1,1,0], 
