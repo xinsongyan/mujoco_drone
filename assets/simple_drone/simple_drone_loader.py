@@ -31,7 +31,7 @@ def load_drone(caged=False):
 
 if __name__ == "__main__":
     # Load simple drone by default
-    model, data = load_drone(caged=False)
+    model, data = load_drone(caged=True)
     
     with mujoco.viewer.launch(model, data) as viewer:
         while viewer.is_running():

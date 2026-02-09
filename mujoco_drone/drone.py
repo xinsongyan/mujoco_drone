@@ -8,6 +8,7 @@ from mujoco_drone.se3controller import SE3Controller
 from mujoco_drone.motor_mixer import MotorMixer
 from assets.simple_drone.simple_drone_loader import load_drone
 
+from mujoco_drone.rolling_controller import RollingController
 
 
 
@@ -44,10 +45,14 @@ class SimpleDrone:
 
         self.se3_controller = SE3Controller(state_estimator=self.state_estimator)   
 
+        self.rolling_controller = RollingController(state_estimator=self.state_estimator)   
+
+        self.controller = self.rolling_controller  # Choose which controller to use
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
         self.motor_mixer = MotorMixer(dx, dy, k)
+
 
 
     def set_pos(self, pos):
@@ -73,12 +78,10 @@ class SimpleDrone:
         # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.pid_controller.compute_control()
         # self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
-        self.thrust_total, self.torques = self.se3_controller.tracking_control(pos_des=[0.1, 0.2, 0.5], 
-                                                                               vel_des = np.array([0, 0, 0]), 
-                                                                            acc_des = np.array([0, 0, 0]), 
-                                                                            heading_des=[1,1,0], 
-                                                                            omega_des_local = np.array([0, 0, 0]),
-                                                                            omega_dot_des_local = np.array([0, 0, 0]))
+        # self.thrust_total, self.torques = self.se3_controller.tracking_control(pos_des=[0.1, 0.1, 0.4], heading_des=[1,0,0])
+        
+        self.thrust_total, self.torques = self.rolling_controller.tracking_control()
+        
         self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torques[0], self.torques[1], self.torques[2])
 
         self.set_motor_cmd(self.motor_cmd)
