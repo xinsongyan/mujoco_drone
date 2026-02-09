@@ -20,7 +20,7 @@ if __name__ == "__main__":
     dashboard = DroneSimulationDashboard()
 
     # Initialize the global drone instance, which the key_callback will use.
-    drone = SimpleDrone()
+    drone = SimpleDrone(caged=True)
     state["drone"] = drone
     key_callback = create_key_callback(state)
     

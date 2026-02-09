@@ -6,15 +6,24 @@ from mujoco_drone.state_estimator import StateEstimator
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.se3controller import SE3Controller
 from mujoco_drone.motor_mixer import MotorMixer
+from assets.simple_drone.simple_drone_loader import load_drone
+
+
+
 
 
 class SimpleDrone:
-    def __init__(self):
-        self.xml_path = os.path.join('assets', 'simple_drone', 'simple_drone.xml')
-        print(f"xml_path: {self.xml_path} ")
- 
-        self.m = mujoco.MjModel.from_xml_path(self.xml_path)
-        self.d = mujoco.MjData(self.m)
+    def __init__(self, caged=False):
+        """
+        Initialize a SimpleDrone instance.
+        
+        Args:
+            caged (bool): Whether to load the caged drone. Default: False (simple drone)
+        """
+        print(f"Loading drone: {'caged' if caged else 'simple'}")
+        
+        # Use the loader function to get model and data
+        self.m, self.d = load_drone(caged=caged)
 
         # body_id = mujoco.mj_name2id(self.m, mujoco.mjtObj.mjOBJ_BODY, "x2")  # or model.body_name2id("name")
         # inertia_diag = self.m.body_inertia[body_id]
