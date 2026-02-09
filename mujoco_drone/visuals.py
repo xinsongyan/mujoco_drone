@@ -61,3 +61,14 @@ def draw_motor_thrust_arrows(
         mat = drone.d.site_xmat[site_id].copy()
         length = np.clip(drone.motor_cmd[idx] / length_scale, 0.01, 1.0)
         draw_arrow(viewer, pos, mat, length, radius=radius, rgba=rgba)
+
+
+def draw_thrust_visualization(viewer, drone):
+    """Draw all thrust visualizations: total thrust arrow and per-rotor arrows.
+    
+    Args:
+        viewer: MuJoCo viewer object
+        drone: SimpleDrone object
+    """
+    draw_drone_thrust_arrow(viewer, drone)
+    draw_motor_thrust_arrows(viewer, drone)

@@ -74,15 +74,15 @@ class SE3Controller:
                   self.k_vel * (vel_des - self.se.base_vel_lin_global) + \
                   acc_des
         err_pos = pos_des - self.se.base_pos
-        print(f"Position Error: {err_pos}, Acc Command: {acc_cmd}")
+        # print(f"Position Error: {err_pos}, Acc Command: {acc_cmd}")
           
         T_cmd  = self.m * acc_cmd - self.m * self.g  # Total force command
-        print(f"T_cmd: {T_cmd}", "self.m * acc_cmd :", self.m * acc_cmd , "-self.m * self.g:", -self.m * self.g)
+        # print(f"T_cmd: {T_cmd}", "self.m * acc_cmd :", self.m * acc_cmd , "-self.m * self.g:", -self.m * self.g)
         T_cmd_wrt_body = self.se.R.T @ T_cmd  # Transform force command to body frame
         
         # f =  np.dot(T_cmd, self.se.R[:, 2])  # Project the force onto the Z-axis of the drone's frame
         Tz_cmd_wrt_body = np.dot(T_cmd_wrt_body, [0, 0, 1])
-        print(f"Tz_cmd_wrt_body: {Tz_cmd_wrt_body}")
+        # print(f"Tz_cmd_wrt_body: {Tz_cmd_wrt_body}")
         
         zd = T_cmd / (np.linalg.norm(T_cmd) + 1e-6)  # Normalize to get the direction of thrust
         heading_des_unit = heading_des / np.linalg.norm(heading_des)  # Desired direction of thrust
