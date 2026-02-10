@@ -28,10 +28,8 @@ def log(R):
 
 
 class SE3Controller:
-    def __init__(self, state_estimator=None, user_cmd=None):
-        if user_cmd is not None:
-            self.user_cmd = user_cmd
-            
+    def __init__(self, user_input=None, state_estimator=None):
+        self.user_input = user_input
         self.se = state_estimator
         # Initialize any necessary parameters for SE(3) control
         self.k_pos = 30.0  # Position gain
@@ -46,36 +44,46 @@ class SE3Controller:
         self.base_inertia_wrt_body = np.array([[0.00226, 0, 0],
                                                 [0, 0.00289, 0],
                                                 [0, 0, 0.00508]])
-  
-
-    def step(self, 
-                         pos_des=[0.0, 0.0, 0.5], 
-                         vel_des = np.array([0, 0, 0]), 
-                         acc_des = np.array([0, 0, 0]), 
-                         heading_des=[1,0,0], 
-                         omega_des_local = np.array([0, 0, 0]),
-                         omega_dot_des_local = np.array([0, 0, 0])):
-
-
-        # vel_des_wrt_body = np.array([self.user_cmd.pitch(), self.user_cmd.roll(), 0])  # Desired velocity based on user input
-        # vel_des = self.se.R @ vel_des_wrt_body # Convert desired velocity from body frame to inertia frame
         
-        # pos_des[0]= self.se.base_pos[0] + vel_des[0] * 0.02  # Update desired position based on user input
-        # pos_des[1]= self.se.base_pos[1] + vel_des[1] * 0.02  # Update desired position based on user input
-        # pos_des[0] = self.se.base_pos[0]
-        # pos_des[1] = self.se.base_pos[1]
+        # Initialize targets from drone's current state
+        self.pos_target = self.se.base_pos.copy()
+        self.yaw_target = self.se.yaw
+        self.heading_target = np.array([np.cos(self.yaw_target), np.sin(self.yaw_target), 0])
+        self.vel_target = np.zeros(3)
+        self.acc_target = np.zeros(3)
+        self.omega_target = np.zeros(3)
+
+
+    def udpate_targets_from_user_input(self, dt=0.002):
+        # Update target position based on user input velocity commands
+        vel_des_wrt_body = np.array([self.user_input.vx(), self.user_input.vy(), self.user_input.vz()])  # Desired velocity based on user input
+        vel_des = self.se.R @ vel_des_wrt_body # Convert desired velocity from body frame to inertia frame
         
-        # yaw_des =   self.se.yaw + np.array(self.user_cmd.yaw()) * 0.1  # Desired yaw based on user input
-        # heading_des = np.array([np.cos(yaw_des), np.sin(yaw_des), 0])  # Desired heading in the XY plane
-        # print(f"Desired Position: {pos_des}")
-        # print(f"desired yaw: {yaw_des}, heading_des: {heading_des}")
+        # Only integrate velocity into target when there's actual user input (non-zero)
+        if np.linalg.norm(vel_des) > 1e-6:
+            self.pos_target[0] += vel_des[0] * dt  # Integrate desired position based on user input
+            self.pos_target[1] += vel_des[1] * dt  # Integrate desired position based on user input
+            # self.pos_target[2] += vel_des[2] * dt
         
-        acc_cmd = self.k_pos * (pos_des - self.se.base_pos) + \
-                  self.k_vel * (vel_des - self.se.base_vel_lin_global) + \
-                  acc_des
-        err_pos = pos_des - self.se.base_pos
-        # print(f"Position Error: {err_pos}, Acc Command: {acc_cmd}")
-          
+        self.pos_target[2] += self.user_input.vz() * dt # Set target z based on user input velocity in z direction
+        
+        # Update yaw target only when there's yaw input
+        wz = self.user_input.wz()
+        if abs(wz) > 1e-6:
+            self.yaw_target += wz * dt  # Integrate yaw based on user input
+            self.heading_target = np.array([np.cos(self.yaw_target), np.sin(self.yaw_target), 0])
+        
+        # print(f"yaw_des: {np.degrees(yaw_des)}, heading_target: {self.heading_target}")
+
+    def step(self):
+        print(f"pos_target: {self.pos_target}, yaw_target: {np.degrees(self.yaw_target)}"   )
+
+        self.udpate_targets_from_user_input()  # Update targets based on user input
+        
+        acc_cmd = self.k_pos * (self.pos_target - self.se.base_pos) + \
+                  self.k_vel * (self.vel_target - self.se.base_vel_lin_global) + \
+                  self.acc_target  # Desired acceleration command in the inertia frame
+ 
         T_cmd  = self.m * acc_cmd - self.m * self.g  # Total force command
         # print(f"T_cmd: {T_cmd}", "self.m * acc_cmd :", self.m * acc_cmd , "-self.m * self.g:", -self.m * self.g)
         T_cmd_wrt_body = self.se.R.T @ T_cmd  # Transform force command to body frame
@@ -85,8 +93,8 @@ class SE3Controller:
         # print(f"Tz_cmd_wrt_body: {Tz_cmd_wrt_body}")
         
         zd = T_cmd / (np.linalg.norm(T_cmd) + 1e-6)  # Normalize to get the direction of thrust
-        heading_des_unit = heading_des / np.linalg.norm(heading_des)  # Desired direction of thrust
-        yd = np.cross(zd, heading_des_unit)  # Orthogonal vector to b3d and b1d
+        heading_target_unit = self.heading_target / np.linalg.norm(self.heading_target)  # Desired direction of thrust
+        yd = np.cross(zd, heading_target_unit)  # Orthogonal vector to b3d and b1d
         yd = yd / (np.linalg.norm(yd) + 1e-6)
         xd = np.cross(yd, zd)
         Rd = np.column_stack((xd, yd, zd))  # Desired rotation matrix
@@ -106,7 +114,7 @@ class SE3Controller:
         # err_rot_wrt_body = 0.5 * vee(self.se.R.T @ Rd  - Rd.T @ self.se.R)
         err_rot_wrt_body = log(self.se.R.T @ Rd)  # Logarithm of the rotation matrix difference
 
-        err_omega_wrt_body =  omega_des_local - self.se.base_vel_ang_local 
+        err_omega_wrt_body =  self.omega_target - self.se.base_vel_ang_local 
 
         M_wrt_body = self.k_rot * err_rot_wrt_body \
                      + self.k_omega * err_omega_wrt_body \

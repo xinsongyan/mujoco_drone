@@ -59,7 +59,11 @@ class GamepadInput:
     def _update_loop(self):
         clock = pygame.time.Clock()
         while self._running:
-            pygame.event.pump()
+            try:
+                pygame.event.pump()
+            except pygame.error as e:
+                # Video system may not be available in thread, skip event pump
+                pass
             try:
                 for i in range(self.num_axes):
                     self.axis_values[i] = self.joystick.get_axis(i)

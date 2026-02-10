@@ -39,7 +39,6 @@ class UserInput:
         # RB (buttons[5]) up, LB (buttons[4]) down for typical XInput layout
         return - (1.0 if buttons[5] else 0.0) * lim + (1.0 if buttons[4] else 0.0) * lim
 
-
     
     def wx(self, lim=1.0):
         axes, _ = self.get_input()

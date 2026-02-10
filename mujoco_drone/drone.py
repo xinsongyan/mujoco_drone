@@ -41,11 +41,11 @@ class SimpleDrone:
         self.cascaded_controller = CascadedController(user_input=self.user_input, 
                                             state_estimator=self.state_estimator)
 
-        self.se3_controller = SE3Controller(state_estimator=self.state_estimator)   
+        self.se3_controller = SE3Controller(user_input=self.user_input, state_estimator=self.state_estimator)   
 
         self.rolling_controller = RollingController(state_estimator=self.state_estimator)   
 
-        self.controller = self.cascaded_controller  # Choose which controller to use
+        self.controller = self.se3_controller  # Choose which controller to use
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
