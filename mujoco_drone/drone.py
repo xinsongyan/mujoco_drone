@@ -38,10 +38,7 @@ class SimpleDrone:
         # self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
         
 
-        self.cascaded_controller = CascadedController(target_x=0.0, 
-                                            target_y=0.0, 
-                                            target_z=0.5, 
-                                            target_yaw=np.deg2rad(15), 
+        self.cascaded_controller = CascadedController(user_input=self.user_input, 
                                             state_estimator=self.state_estimator)
 
         self.se3_controller = SE3Controller(state_estimator=self.state_estimator)   

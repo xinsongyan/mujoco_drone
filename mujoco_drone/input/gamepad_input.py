@@ -1,9 +1,14 @@
 import pygame
 import threading
 import time
+import os
 
 class GamepadInput:
     def __init__(self, update_freq=50):
+        # Set dummy video driver if no display available
+        if 'SDL_VIDEODRIVER' not in os.environ:
+            os.environ['SDL_VIDEODRIVER'] = 'dummy'
+        
         pygame.init()
         pygame.joystick.init()
 
@@ -14,7 +19,7 @@ class GamepadInput:
         self.joystick.init()
         print(f"Joystick name: {self.joystick.get_name()}")
         print("Note: F710 gamepad should be set to X mode (not D mode)")
-
+        
         # Store states
         self.num_axes = self.joystick.get_numaxes()
         self.num_buttons = self.joystick.get_numbuttons()
@@ -55,10 +60,16 @@ class GamepadInput:
         clock = pygame.time.Clock()
         while self._running:
             pygame.event.pump()
-            for i in range(self.num_axes):
-                self.axis_values[i] = self.joystick.get_axis(i)
-            for i in range(self.num_buttons):
-                self.button_states[i] = self.joystick.get_button(i)
+            try:
+                for i in range(self.num_axes):
+                    self.axis_values[i] = self.joystick.get_axis(i)
+                for i in range(self.num_buttons):
+                    self.button_states[i] = self.joystick.get_button(i)
+            except pygame.error as e:
+                # Joystick disconnected or system not ready, skip this update
+                print(f"Gamepad error: {e}")
+            except Exception as e:
+                print(f"Unexpected error in gamepad update loop: {e}")
             clock.tick(self.update_freq)
 
     def get_axes(self):
