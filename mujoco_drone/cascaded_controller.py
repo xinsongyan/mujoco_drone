@@ -110,27 +110,4 @@ class CascadedController:
         return thrust_total, torque_roll, torque_pitch, torque_yaw
 
 
-        # # --- D. MOTOR MIXING ---
-        # # Config: FR, FL, RR, RL
-        # # Thrust is distributed to all.
-        # # Pitch: Front +, Rear - (To pitch up)
-        # # Roll: Left +, Right - (To roll right)
-        # # Yaw: CCW +, CW -
-
-        # # Divide thrust by 4 motors
-        # t = thrust_total / 4.0
-        
-        # # Standard Quad X Mixing
-        # # FR (Front Right) - CCW
-        # m_fr = t - torque_roll - torque_pitch  - torque_yaw
-        
-        # # FL (Front Left) - CW
-        # m_fl = t + torque_roll - torque_pitch  + torque_yaw
-        
-        # # RR (Rear Right) - CW
-        # m_rr = t - torque_roll + torque_pitch  + torque_yaw
-        
-        # # RL (Rear Left) - CCW
-        # m_rl = t + torque_roll + torque_pitch  - torque_yaw
-        
-        # return np.array([m_fr, m_fl, m_rr, m_rl])
+       

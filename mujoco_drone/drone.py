@@ -2,6 +2,7 @@ import os
 import numpy as np
 import mujoco
 
+from mujoco_drone.input.user_input import UserInput
 from mujoco_drone.state_estimator import StateEstimator
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.se3controller import SE3Controller
@@ -31,13 +32,13 @@ class SimpleDrone:
         # print(f"Body ID: {body_id}, Inertia Diagonal: {inertia_diag}")
         # input()
         
-        # self.user_cmd = UserCommand()
+        self.user_input = UserInput()  # Initialize user input handler
         self.state_estimator = StateEstimator(self.m, self.d)
 
         # self.stabilisation_controller = PIDController(z_des=0.5, rpy_setpoint=[0,0,0], state_estimator=self.state_estimator)
         
 
-        self.pid_controller = CascadedController(target_x=0.0, 
+        self.cascaded_controller = CascadedController(target_x=0.0, 
                                             target_y=0.0, 
                                             target_z=0.5, 
                                             target_yaw=np.deg2rad(15), 
@@ -47,7 +48,7 @@ class SimpleDrone:
 
         self.rolling_controller = RollingController(state_estimator=self.state_estimator)   
 
-        self.controller = self.pid_controller  # Choose which controller to use
+        self.controller = self.cascaded_controller  # Choose which controller to use
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
@@ -69,14 +70,9 @@ class SimpleDrone:
 
 
     def __call__(self):
-        # print(f"user_cmd: {self.user_cmd.get_input()}")
-        # print("Base Position:", [f"{x:.3f}" for x in self.state_estimator.base_pos])
-        # print("Base Quaternion:", [f"{x:.3f}" for x in self.state_estimator.base_quat])
-        # print("Base RPY:", [f"{x:.3f}" for x in self.state_estimator.base_rpy])
+        # print(f"user_cmd: {self.user_input.get_input()}")
         
-        
-        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.pid_controller.step()
-        # self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
+        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.cascaded_controller.step()
 
         # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.se3_controller.step(pos_des=[0.1, 0.1, 0.4], heading_des=[1,0,0])
         

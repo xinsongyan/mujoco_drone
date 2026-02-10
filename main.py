@@ -4,25 +4,29 @@ import mujoco
 import mujoco.viewer 
 import numpy as np
 import time
-from PyQt5.QtWidgets import QApplication
 
-from mujoco_drone.input.key_callback import create_key_callback
+from PyQt5.QtWidgets import QApplication
 from mujoco_drone.drone import SimpleDrone
 from mujoco_drone.dashboard import DroneSimulationDashboard
 from mujoco_drone.visuals import draw_thrust_visualization
 
+# Pause state
+paused = False
 
-state = {"paused": False, "drone": None}
+# Key callback for pause/unpause
+def key_callback(keycode):
+    global paused
+    if keycode == 32:  # Spacebar
+        paused = not paused
+        print(f"Simulation {'paused' if paused else 'resumed'}")
 
 
 if __name__ == "__main__":
     # Initialize dashboard
     dashboard = DroneSimulationDashboard()
 
-    # Initialize the global drone instance, which the key_callback will use.
+    # Initialize the drone
     drone = SimpleDrone(caged=True)
-    state["drone"] = drone
-    key_callback = create_key_callback(state)
     
     with mujoco.viewer.launch_passive(drone.m, drone.d, key_callback=key_callback) as viewer:
 
@@ -30,7 +34,7 @@ if __name__ == "__main__":
 
         while viewer.is_running():
 
-            if not state["paused"]:
+            if not paused:
                 drone()
 
                 mujoco.mj_step(drone.m, drone.d)
@@ -49,7 +53,7 @@ if __name__ == "__main__":
                 time.sleep(drone.m.opt.timestep)
 
             # Display status text at the bottom (always update regardless of pause state)
-            viewer.set_texts([(0, 0, f"Time: {drone.d.time:.3f}", f"Paused: {state['paused']}")])
+            viewer.set_texts([(0, 0, f"Time: {drone.d.time:.3f}", f"Paused: {paused}")])
 
             # Always sync the viewer to process events / render
             viewer.sync()
