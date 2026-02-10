@@ -48,7 +48,7 @@ class SE3Controller:
                                                 [0, 0, 0.00508]])
   
 
-    def tracking_control(self, 
+    def step(self, 
                          pos_des=[0.0, 0.0, 0.5], 
                          vel_des = np.array([0, 0, 0]), 
                          acc_des = np.array([0, 0, 0]), 
@@ -113,5 +113,5 @@ class SE3Controller:
                      + hat(self.se.base_vel_ang_local) @ self.base_inertia_wrt_body @ self.se.base_vel_ang_local
                      
             
-        return Tz_cmd_wrt_body, M_wrt_body
+        return Tz_cmd_wrt_body, M_wrt_body[0], M_wrt_body[1], M_wrt_body[2]
 

@@ -47,7 +47,7 @@ class SimpleDrone:
 
         self.rolling_controller = RollingController(state_estimator=self.state_estimator)   
 
-        self.controller = self.rolling_controller  # Choose which controller to use
+        self.controller = self.pid_controller  # Choose which controller to use
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
@@ -75,13 +75,13 @@ class SimpleDrone:
         # print("Base RPY:", [f"{x:.3f}" for x in self.state_estimator.base_rpy])
         
         
-        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.pid_controller.compute_control()
+        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.pid_controller.step()
         # self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
-        # self.thrust_total, self.torques = self.se3_controller.tracking_control(pos_des=[0.1, 0.1, 0.4], heading_des=[1,0,0])
+        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.se3_controller.step(pos_des=[0.1, 0.1, 0.4], heading_des=[1,0,0])
         
-        self.thrust_total, self.torques = self.rolling_controller.tracking_control()
+        self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.controller.step()
         
-        self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torques[0], self.torques[1], self.torques[2])
+        self.motor_cmd = self.motor_mixer.mix(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 
         self.set_motor_cmd(self.motor_cmd)

@@ -67,7 +67,7 @@ class RollingController:
     def adjust_yaw(self, delta):
         self.target_yaw += delta
 
-    def tracking_control(self, pos_des=None):
+    def step(self, pos_des=None):
         if pos_des is None:
             pos_des = np.array([self.target_x, self.target_y, self.target_z], dtype=float)
         
@@ -89,4 +89,4 @@ class RollingController:
         torque_wrt_body = self.k_omega * (omega_des_wrt_body - self.se.base_vel_ang_local) + hat(self.se.base_vel_ang_local) @ self.base_inertia_wrt_body @ self.se.base_vel_ang_local
                      
         
-        return Tz_cmd_wrt_body, torque_wrt_body
+        return Tz_cmd_wrt_body, torque_wrt_body[0], torque_wrt_body[1], torque_wrt_body[2]

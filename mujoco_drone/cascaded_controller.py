@@ -66,7 +66,7 @@ class CascadedController:
         self.target_z += delta_z
         self.pid_z.setpoint = self.target_z
 
-    def compute_control(self):
+    def step(self):
         # Get current state from estimator
         if self.se is None:
             raise ValueError("State estimator not provided.")
@@ -75,7 +75,7 @@ class CascadedController:
         # 1. Altitude Control
         # Gravity compensation (approx 10N for 1kg) + PID adjustment
         thrust_base = 9.81 * self.se.total_mass
-        total_thrust = thrust_base + self.pid_z(self.se.z)
+        thrust_total = thrust_base + self.pid_z(self.se.z)
 
         # 2. XY Position Control -> Desired Lean Angles
         # To move +X (Forward), we need negative Pitch (Nose down)
@@ -94,20 +94,20 @@ class CascadedController:
         body_des_pitch = -global_des_roll * np.sin(current_yaw) + global_des_pitch * np.cos(current_yaw)
             
         # --- C. INNER LOOP (Attitude Control) ---
-        # roll_cmd  = 5*(des_roll-self.se.roll) 
-        # pitch_cmd = 5*(des_pitch-self.se.pitch) 
-        # yaw_cmd   = 5*(self.se.yaw) 
+        # torque_roll  = 5*(des_roll-self.se.roll) 
+        # torque_pitch = 5*(des_pitch-self.se.pitch) 
+        # torque_yaw   = 5*(self.se.yaw) 
         # Use desired angles as dynamic setpoints for the attitude PIDs
         self.pid_roll.setpoint = body_des_roll
         self.pid_pitch.setpoint = body_des_pitch
 
 
-        roll_cmd = self.pid_roll(self.se.roll)
-        pitch_cmd = self.pid_pitch(self.se.pitch)
-        yaw_cmd = self.pid_yaw(self.se.yaw)
+        torque_roll = self.pid_roll(self.se.roll)
+        torque_pitch = self.pid_pitch(self.se.pitch)
+        torque_yaw = self.pid_yaw(self.se.yaw)
 
 
-        return total_thrust, roll_cmd, pitch_cmd, yaw_cmd
+        return thrust_total, torque_roll, torque_pitch, torque_yaw
 
 
         # # --- D. MOTOR MIXING ---
@@ -118,19 +118,19 @@ class CascadedController:
         # # Yaw: CCW +, CW -
 
         # # Divide thrust by 4 motors
-        # t = total_thrust / 4.0
+        # t = thrust_total / 4.0
         
         # # Standard Quad X Mixing
         # # FR (Front Right) - CCW
-        # m_fr = t - roll_cmd - pitch_cmd  - yaw_cmd
+        # m_fr = t - torque_roll - torque_pitch  - torque_yaw
         
         # # FL (Front Left) - CW
-        # m_fl = t + roll_cmd - pitch_cmd  + yaw_cmd
+        # m_fl = t + torque_roll - torque_pitch  + torque_yaw
         
         # # RR (Rear Right) - CW
-        # m_rr = t - roll_cmd + pitch_cmd  + yaw_cmd
+        # m_rr = t - torque_roll + torque_pitch  + torque_yaw
         
         # # RL (Rear Left) - CCW
-        # m_rl = t + roll_cmd + pitch_cmd  - yaw_cmd
+        # m_rl = t + torque_roll + torque_pitch  - torque_yaw
         
         # return np.array([m_fr, m_fl, m_rr, m_rl])
