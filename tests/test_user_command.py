@@ -2,9 +2,9 @@ import types
 import pytest
 
 
-class FakeGamepadReader:
+class FakeGamepadInput:
     def __init__(self, axes=None, buttons=None):
-        # Default to 6 axes as in GamepadReader.axis_labels
+        # Default to 6 axes as in GamepadInput.axis_labels
         self._axes = axes if axes is not None else [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self._buttons = buttons if buttons is not None else [False] * 10
         self.started = False
@@ -31,11 +31,11 @@ def patch_gamepad(monkeypatch):
 
     def factory(*args, **kwargs):
         # Create a new fake per UserCommand instance unless set explicitly
-        inst = FakeGamepadReader()
+        inst = FakeGamepadInput()
         fake_holder.instance = inst
         return inst
 
-    monkeypatch.setattr(uc, "GamepadReader", factory)
+    monkeypatch.setattr(uc, "GamepadInput", factory)
     return fake_holder
 
 
@@ -43,9 +43,9 @@ def make_user_command_with_axes(monkeypatch, axes):
     from mujoco_drone.input import user_command as uc
 
     def factory(*args, **kwargs):
-        return FakeGamepadReader(axes=axes)
+        return FakeGamepadInput(axes=axes)
 
-    monkeypatch.setattr(uc, "GamepadReader", factory)
+    monkeypatch.setattr(uc, "GamepadInput", factory)
     return uc.UserCommand()
 
 

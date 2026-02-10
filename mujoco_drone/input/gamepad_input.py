@@ -2,7 +2,7 @@ import pygame
 import threading
 import time
 
-class GamepadReader:
+class GamepadInput:
     def __init__(self, update_freq=50):
         pygame.init()
         pygame.joystick.init()
@@ -13,6 +13,7 @@ class GamepadReader:
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
         print(f"Joystick name: {self.joystick.get_name()}")
+        print("Note: F710 gamepad should be set to X mode (not D mode)")
 
         # Store states
         self.num_axes = self.joystick.get_numaxes()
@@ -67,7 +68,7 @@ class GamepadReader:
         return self.button_states.copy()
 
     def print_state(self):
-        print(f"============ {self.joystick.get_name()} ============")
+        print(f"============ {self.joystick.get_name()} (X mode) ============")
         print("=== Axis States ===")
         axis_states_str = ", ".join(
             f"{self.axis_labels[i] if i < len(self.axis_labels) else f'Axis {i}'}: {val:.3f}"
@@ -84,13 +85,13 @@ class GamepadReader:
         print()
         
 if __name__ == "__main__":
-    reader = GamepadReader(update_freq=20)
+    reader = GamepadInput(update_freq=20)
     reader.start()
 
     try:
         while True:
             reader.print_state()
-            time.sleep(1/50)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         print("Stopping...")
         reader.stop()

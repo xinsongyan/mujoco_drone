@@ -1,5 +1,5 @@
 
-from mujoco_drone.input.gamepad_reader import GamepadReader
+from mujoco_drone.input.gamepad_input import GamepadInput
 import time
 
 class UserCommand:
@@ -7,7 +7,7 @@ class UserCommand:
         """
         Initializes the UserCommand class with gamepad input.
         """
-        self.reader = GamepadReader()
+        self.reader = GamepadInput()
         print("Using Gamepad for user input.")
         self.reader.start()
 

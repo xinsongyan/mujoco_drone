@@ -28,7 +28,7 @@ def vel_base_to_omega_base(vel_base=np.array([0, 0, 0])):
     omega_base = np.cross(pos_contact_to_base, vel_base) / np.linalg.norm(pos_contact_to_base)**2
     return omega_base
 
-
+#todo, use the joy stick to give input to the controller
 class RollingController:
     def __init__(self, state_estimator=None, user_cmd=None):
         if user_cmd is not None:
@@ -39,6 +39,8 @@ class RollingController:
         self.target_y = 0.0
         self.target_z = cage_radius
         self.target_yaw = 0.0
+        
+        # todo, tune the gains
         # Initialize any necessary parameters for SE(3) control
         self.k_pos = 30.0  # Position gain
         self.k_vel = 5.0   # Velocity gain
