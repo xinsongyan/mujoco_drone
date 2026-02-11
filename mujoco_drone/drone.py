@@ -43,9 +43,9 @@ class SimpleDrone:
 
         self.se3_controller = SE3Controller(user_input=self.user_input, state_estimator=self.state_estimator)   
 
-        self.rolling_controller = RollingController(state_estimator=self.state_estimator)   
+        self.rolling_controller = RollingController(user_input=self.user_input, state_estimator=self.state_estimator)   
 
-        self.controller = self.se3_controller  # Choose which controller to use
+        self.controller = self.rolling_controller  # Choose which controller to use
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02

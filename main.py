@@ -1,5 +1,7 @@
 import os
 import sys
+import pyautogui
+
 import mujoco
 import mujoco.viewer 
 import numpy as np
@@ -29,6 +31,9 @@ if __name__ == "__main__":
     drone = SimpleDrone(caged=True)
     
     with mujoco.viewer.launch_passive(drone.m, drone.d, key_callback=key_callback) as viewer:
+        
+        # This toggles the UI (Side panels + Overlays) just like Shift+Tab
+        pyautogui.hotkey('shift', 'tab')
 
         step_count = 0
 

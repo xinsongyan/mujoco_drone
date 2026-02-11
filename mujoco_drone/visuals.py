@@ -15,7 +15,8 @@ def draw_arrow(viewer, position, rotation_matrix, length, radius=0.0075, rgba=(1
     """
     if viewer.user_scn.ngeom < viewer.user_scn.maxgeom:
         viewer.user_scn.ngeom += 1
-        mujoco.mjv_initGeom(viewer.user_scn.geoms[viewer.user_scn.ngeom-1],
+        geom = viewer.user_scn.geoms[viewer.user_scn.ngeom-1]
+        mujoco.mjv_initGeom(geom,
                             mujoco.mjtGeom.mjGEOM_ARROW,
                             np.array([radius, radius, length]),  # size
                             position,
@@ -23,12 +24,14 @@ def draw_arrow(viewer, position, rotation_matrix, length, radius=0.0075, rgba=(1
                             np.array(rgba).astype(np.float32))
 
 
-def draw_drone_thrust_arrow(viewer, drone, rgba=(1, 1, 0, 1)):
+
+def draw_drone_thrust_arrow(viewer, drone, rgba=(1, 1, 0, 0.2)):
     """Draw a thrust arrow for the drone."""
     body_id = drone.m.body("base").id
     drone_pos = drone.d.xpos[body_id].copy()
     drone_mat = drone.d.xmat[body_id].copy()
-    arrow_length = np.clip(drone.thrust_total / 50.0, 0.01, 1.0)
+    # arrow_length = np.clip(drone.thrust_total / 50.0, -10.0, 10.0)
+    arrow_length = drone.thrust_total
     draw_arrow(viewer, drone_pos, drone_mat, arrow_length, radius=0.0075, rgba=rgba)
 
 
@@ -36,9 +39,9 @@ def draw_motor_thrust_arrows(
     viewer,
     drone,
     motor_sites=("motor_rr", "motor_fr", "motor_rl", "motor_fl"),
-    length_scale=50.0,
+    length_scale=1.0,
     radius=0.004,
-    rgba=(1, 0.6, 0, 1),
+    rgba=(1, 1, 0, 0.2),
 ):
     """Draw thrust arrows for each rotor using motor commands.
 
@@ -59,7 +62,7 @@ def draw_motor_thrust_arrows(
         site_id = drone.m.site(site_name).id
         pos = drone.d.site_xpos[site_id].copy()
         mat = drone.d.site_xmat[site_id].copy()
-        length = np.clip(drone.motor_cmd[idx] / length_scale, 0.01, 1.0)
+        length = drone.motor_cmd[idx] / length_scale
         draw_arrow(viewer, pos, mat, length, radius=radius, rgba=rgba)
 
 

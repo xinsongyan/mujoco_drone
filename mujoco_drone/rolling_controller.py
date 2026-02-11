@@ -28,23 +28,21 @@ def vel_base_to_omega_base(vel_base=np.array([0, 0, 0])):
     omega_base = np.cross(pos_contact_to_base, vel_base) / np.linalg.norm(pos_contact_to_base)**2
     return omega_base
 
-#todo, use the joy stick to give input to the controller
+
 class RollingController:
-    def __init__(self, state_estimator=None, user_cmd=None):
-        if user_cmd is not None:
-            self.user_cmd = user_cmd
+    def __init__(self, user_input=None, state_estimator=None):
+        if user_input is not None:
+            self.user_input = user_input
             
         self.se = state_estimator
-        self.target_x = 0.0
-        self.target_y = 0.0
-        self.target_z = cage_radius
-        self.target_yaw = 0.0
-        
+     
+        self.pos_target = self.se.base_pos.copy()
+
         # todo, tune the gains
         # Initialize any necessary parameters for SE(3) control
-        self.k_pos = 30.0  # Position gain
+        self.k_pos = 20.0  # Position gain
         self.k_vel = 5.0   # Velocity gain
-        self.k_rot = 30.0   # Rotation gain
+        self.k_rot = 20.0   # Rotation gain
         self.k_omega = 1.0 # Angular velocity gain
 
 
@@ -55,25 +53,27 @@ class RollingController:
                                                 [0, 0.00289, 0],
                                                 [0, 0, 0.00508]])
         
-    def adjust_target_x(self, delta):
-        self.target_x += delta
 
-    def adjust_target_y(self, delta):
-        self.target_y += delta
 
-    def adjust_target_z(self, delta):
-        self.target_z += delta
 
-    def adjust_yaw(self, delta):
-        self.target_yaw += delta
 
-    def step(self, pos_des=None):
-        if pos_des is None:
-            pos_des = np.array([self.target_x, self.target_y, self.target_z], dtype=float)
+    def udpate_targets_from_user_input(self, dt=0.002):  
+        vel_des = np.array([self.user_input.vx(), self.user_input.vy(), 0.0]) 
+        
+        # update pos target based on user input velocity commands
+        if np.linalg.norm(vel_des) > 1e-6:
+            self.pos_target[0] += vel_des[0] * dt  # Integrate desired position based on user input
+            self.pos_target[1] += vel_des[1] * dt  # Integrate desired position based on user input
+        
+        self.pos_target[2] = cage_radius  # Ensure target position is on the cage surface
+        
+
+    def step(self):
+        self.udpate_targets_from_user_input()  # Update targets based on user input
         
         
         
-        pos_des[2] = cage_radius  # Ensure desired position is on the cage surface
+        pos_des = self.pos_target
         vel_des = 1 * (pos_des - self.se.base_pos)  # Desired velocity based on position error
         # linear part of control
         acc_cmd = self.k_pos * (pos_des - self.se.base_pos) + \
