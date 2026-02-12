@@ -1,7 +1,7 @@
 import os
 import mujoco
 import mujoco.viewer 
-
+import time
 
 def load_drone(caged=False):
     """
@@ -33,7 +33,8 @@ if __name__ == "__main__":
     # Load simple drone by default
     model, data = load_drone(caged=True)
     
-    with mujoco.viewer.launch(model, data) as viewer:
+    with mujoco.viewer.launch_passive(model, data) as viewer:
         while viewer.is_running():
             mujoco.mj_step(model, data)
+            time.sleep(model.opt.timestep)
             viewer.sync()
