@@ -1,0 +1,9 @@
+imageio==2.37.2
+mujoco==3.5.0
+numpy==2.4.2
+PyAutoGUI==0.9.54
+pygame==2.6.1
+PyQt5==5.15.11
+pyqtgraph==0.14.0
+simple-pid==2.0.1
+transformations==2026.1.18

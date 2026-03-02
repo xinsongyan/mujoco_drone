@@ -1,6 +1,9 @@
 import os
 import sys
-import pyautogui
+try:
+    import pyautogui
+except Exception:
+    pyautogui = None
 
 import mujoco
 import mujoco.viewer 
@@ -10,7 +13,7 @@ import time
 from PyQt5.QtWidgets import QApplication
 from mujoco_drone.drone import SimpleDrone
 from mujoco_drone.dashboard import DroneSimulationDashboard
-from mujoco_drone.visuals import draw_thrust_visualization
+from mujoco_drone.visuals import draw_thrust_visualization, draw_pos_target_sphere
 
 # Pause state
 paused = False
@@ -33,7 +36,11 @@ if __name__ == "__main__":
     with mujoco.viewer.launch_passive(drone.m, drone.d, key_callback=key_callback) as viewer:
         
         # This toggles the UI (Side panels + Overlays) just like Shift+Tab
-        pyautogui.hotkey('shift', 'tab')
+        if pyautogui is not None:
+            try:
+                pyautogui.hotkey('shift', 'tab')
+            except Exception:
+                pass
 
         step_count = 0
 
@@ -50,9 +57,13 @@ if __name__ == "__main__":
                 # Visualize thrust arrows (total and per-rotor)
                 draw_thrust_visualization(viewer, drone)
 
-                # Update dashboard every 10 steps
-                if step_count % 10 == 0:
-                    dashboard.update(drone, drone.d.time)
+                # Visualize controller position target
+                if hasattr(drone.controller, "pos_target"):
+                    draw_pos_target_sphere(viewer, drone.controller.pos_target)
+
+                # # Update dashboard every 10 steps
+                # if step_count % 10 == 0:
+                #     dashboard.update(drone, drone.d.time)
 
                 step_count += 1
                 time.sleep(drone.m.opt.timestep)

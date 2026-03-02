@@ -75,3 +75,25 @@ def draw_thrust_visualization(viewer, drone):
     """
     draw_drone_thrust_arrow(viewer, drone)
     draw_motor_thrust_arrows(viewer, drone)
+
+
+def draw_pos_target_sphere(viewer, pos_target, radius=0.01, rgba=(1, 0, 0, 0.9)):
+    """Draw a position-target sphere in the MuJoCo viewer.
+
+    Args:
+        viewer: MuJoCo viewer object
+        pos_target: Target position (3,)
+        radius: Sphere radius in meters
+        rgba: Color as (R, G, B, A) tuple
+    """
+    if viewer.user_scn.ngeom < viewer.user_scn.maxgeom:
+        viewer.user_scn.ngeom += 1
+        geom = viewer.user_scn.geoms[viewer.user_scn.ngeom - 1]
+        mujoco.mjv_initGeom(
+            geom,
+            mujoco.mjtGeom.mjGEOM_SPHERE,
+            np.array([radius, radius, radius]),
+            np.array(pos_target),
+            np.eye(3).reshape(-1),
+            np.array(rgba).astype(np.float32),
+        )
