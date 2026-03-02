@@ -28,7 +28,7 @@ def key_callback(keycode):
 
 if __name__ == "__main__":
     # Initialize dashboard
-    dashboard = DroneSimulationDashboard()
+    # dashboard = DroneSimulationDashboard()
 
     # Initialize the drone
     drone = SimpleDrone(caged=True)
@@ -41,6 +41,12 @@ if __name__ == "__main__":
                 pyautogui.hotkey('shift', 'tab')
             except Exception:
                 pass
+
+        # Set initial camera to top-down view
+        viewer.cam.azimuth =0.0
+        viewer.cam.elevation = -90.0
+        viewer.cam.distance = 2.0
+        viewer.cam.lookat[:] = [0, 0, 0]
 
         step_count = 0
 
@@ -69,7 +75,8 @@ if __name__ == "__main__":
                 time.sleep(drone.m.opt.timestep)
 
             # Display status text at the bottom (always update regardless of pause state)
-            viewer.set_texts([(0, 0, f"Time: {drone.d.time:.3f}", f"Paused: {paused}")])
+            controller_name = getattr(drone, "controller_name", type(drone.controller).__name__)
+            viewer.set_texts([(0, 0, f"Time: {drone.d.time:.3f}", f"Paused: {paused} | Controller: {controller_name}")])
 
             # Always sync the viewer to process events / render
             viewer.sync()

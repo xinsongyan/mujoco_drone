@@ -21,6 +21,14 @@ class UserInput:
     def stop(self):
         self.reader.stop()
 
+    def button_a(self):
+        _, buttons = self.get_input()
+        return bool(buttons[0]) if len(buttons) > 0 else False
+
+    def button_b(self):
+        _, buttons = self.get_input()
+        return bool(buttons[1]) if len(buttons) > 1 else False
+
 
 
 
@@ -66,9 +74,12 @@ if __name__ == "__main__":
             wz_val = user_cmd.wz()
             wx_val = user_cmd.wx()
             wy_val = user_cmd.wy()
+            a_val = user_cmd.button_a()
+            b_val = user_cmd.button_b()
             print(
                 f"Vx: {vx_val:.2f}, Vy: {vy_val:.2f}, Vz: {vz_val:.2f}, "
-                f"Wx: {wx_val:.2f}, Wy: {wy_val:.2f}, Wz: {wz_val:.2f}"
+                f"Wx: {wx_val:.2f}, Wy: {wy_val:.2f}, Wz: {wz_val:.2f}, "
+                f"A: {int(a_val)}, B: {int(b_val)}"
             )
             time.sleep(0.1)
     except KeyboardInterrupt:

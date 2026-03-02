@@ -38,12 +38,19 @@ class RollingController:
      
         self.pos_target = self.se.base_pos.copy()
 
+        # Circular trajectory parameters (sampled by simulation time)
+        self.traj_radius = 0.2  # meters
+        self.traj_omega = 1.0    # rad/s
+        self.traj_center = self.se.base_pos.copy()
+        self.traj_center[0] += self.traj_radius  # start on circle at t=0 without jump
+        self.traj_center[2] = cage_radius
+
         # todo, tune the gains
         # Initialize any necessary parameters for SE(3) control
         self.k_pos = 80.0  # Position gain
         self.k_vel = 5.0   # Velocity gain
-        self.k_rot = 40.0   # Rotation gain
-        self.k_omega = 1.0 # Angular velocity gain
+        # self.k_rot = 40.0   # Rotation gain
+        self.k_omega = 2.5 # Angular velocity gain
 
 
         self.m = self.se.total_mass  # Mass of the drone in kg
@@ -57,19 +64,21 @@ class RollingController:
 
 
 
-    def udpate_targets_from_user_input(self, dt=0.002):  
-        vel_des = np.array([self.user_input.vx(), self.user_input.vy(), 0.0]) 
-        
-        # update pos target based on user input velocity commands
-        if np.linalg.norm(vel_des) > 1e-6:
-            self.pos_target[0] += vel_des[0] * dt  # Integrate desired position based on user input
-            self.pos_target[1] += vel_des[1] * dt  # Integrate desired position based on user input
-        
-        self.pos_target[2] = cage_radius  # Ensure target position is on the cage surface
+    def sample_circular_pos_target(self, t):
+        theta = self.traj_omega * t + np.pi  # Start at (radius, 0) when t=0
+        return np.array([
+            self.traj_center[0] + self.traj_radius * np.cos(theta),
+            self.traj_center[1] + self.traj_radius * np.sin(theta),
+            cage_radius,
+        ])
+
+    def update_target_from_time(self):
+        t = self.se.d.time
+        self.pos_target = self.sample_circular_pos_target(t)
         
 
     def step(self):
-        self.udpate_targets_from_user_input()  # Update targets based on user input
+        self.update_target_from_time()  # Sample circular target based on simulation time
         
         
         

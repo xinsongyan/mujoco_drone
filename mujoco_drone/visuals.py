@@ -39,7 +39,7 @@ def draw_motor_thrust_arrows(
     viewer,
     drone,
     motor_sites=("motor_rr", "motor_fr", "motor_rl", "motor_fl"),
-    length_scale=1.0,
+    length_scale=0.4,
     radius=0.004,
     rgba=(1, 1, 0, 0.2),
 ):
@@ -73,7 +73,7 @@ def draw_thrust_visualization(viewer, drone):
         viewer: MuJoCo viewer object
         drone: SimpleDrone object
     """
-    draw_drone_thrust_arrow(viewer, drone)
+    # draw_drone_thrust_arrow(viewer, drone)
     draw_motor_thrust_arrows(viewer, drone)
 
 

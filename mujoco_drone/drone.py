@@ -45,7 +45,12 @@ class SimpleDrone:
 
         self.rolling_controller = RollingController(user_input=self.user_input, state_estimator=self.state_estimator)   
 
-        self.controller = self.rolling_controller  # Choose which controller to use
+        self.controller = self.rolling_controller  # Choose rolling as default
+        self.controller_name = "rolling"
+
+        # Edge-triggered A/B button handling for controller switching
+        self._prev_a_pressed = False
+        self._prev_b_pressed = False
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
@@ -65,14 +70,30 @@ class SimpleDrone:
         # Set the motor commands to the actuators
         self.d.ctrl[:4] = motor_cmd
 
+    def update_controller_selection(self):
+        a_pressed = self.user_input.button_a()
+        b_pressed = self.user_input.button_b()
+
+        # A: switch to SE3 controller
+        if a_pressed and not self._prev_a_pressed:
+            self.controller = self.se3_controller
+            self.controller_name = "se3"
+            print("Switched controller -> SE3 (A)")
+
+        # B: switch to rolling controller
+        if b_pressed and not self._prev_b_pressed:
+            self.controller = self.rolling_controller
+            self.controller_name = "rolling"
+            print("Switched controller -> Rolling (B)")
+
+        self._prev_a_pressed = a_pressed
+        self._prev_b_pressed = b_pressed
+
 
     def __call__(self):
         # print(f"user_cmd: {self.user_input.get_input()}")
-        
-        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.cascaded_controller.step()
+        self.update_controller_selection()
 
-        # self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.se3_controller.step(pos_des=[0.1, 0.1, 0.4], heading_des=[1,0,0])
-        
         self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.controller.step()
         
         self.motor_cmd = self.motor_mixer.mix2(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)

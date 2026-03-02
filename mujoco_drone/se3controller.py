@@ -76,7 +76,7 @@ class SE3Controller:
         # print(f"yaw_des: {np.degrees(yaw_des)}, heading_target: {self.heading_target}")
 
     def step(self):
-        print(f"pos_target: {self.pos_target}, yaw_target: {np.degrees(self.yaw_target)}"   )
+        # print(f"pos_target: {self.pos_target}, yaw_target: {np.degrees(self.yaw_target)}"   )
 
         self.udpate_targets_from_user_input()  # Update targets based on user input
         
