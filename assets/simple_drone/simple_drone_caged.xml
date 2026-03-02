@@ -18,7 +18,7 @@
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
 
-    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" friction="1.0 0.005 0.0001"/>
 
     <body name="world_frame" pos="0 0 0">
       <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
@@ -74,10 +74,10 @@
   </worldbody>
 
   <actuator>
-    <motor name="motor_rr" site="motor_rr" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
-    <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
-    <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
-    <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_rr" site="motor_rr" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-10 10"/>
+    <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-10 10"/>
+    <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-10 10"/>
+    <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-10 10"/>
   </actuator>
 
 

@@ -11,7 +11,7 @@ def load_drone(caged=False):
         caged (bool): Whether to load the caged drone. Default: False (simple drone)
     
     Returns:
-        tuple: (model, data) - MuJoCo model and data objects
+        tuple: (model, data, cage_radius) - MuJoCo model, data, and cage radius (None if not present)
     """
     if caged:
         xml_path = os.path.join('assets/simple_drone/simple_drone_caged.xml')
@@ -25,13 +25,21 @@ def load_drone(caged=False):
     
     model = mujoco.MjModel.from_xml_path(xml_path)
     data = mujoco.MjData(model)
+
+    cage_radius = None
+    try:
+        cage_geom_id = model.geom("cage").id
+        cage_radius = float(model.geom_size[cage_geom_id, 0])
+    except Exception:
+        pass
     
-    return model, data
+    return model, data, cage_radius
 
 
 if __name__ == "__main__":
     # Load simple drone by default
-    model, data = load_drone(caged=True)
+    model, data, cage_radius = load_drone(caged=True)
+    print(f"cage_radius: {cage_radius}")
     
     with mujoco.viewer.launch(model, data) as viewer:
         while viewer.is_running():

@@ -3,8 +3,6 @@ import numpy as np
 import transformations as tf 
 import time
 
-cage_radius = 0.2  # Radius of the cage in meters
-
 
 def hat(omega):
     """Convert a 3D vector to a 3x3 skew-symmetric matrix."""
@@ -23,29 +21,23 @@ def vee(omega_hat):
     ])
 
 
-def vel_base_to_omega_base(vel_base=np.array([0, 0, 0])):
+def vel_base_to_omega_base(vel_base=np.array([0, 0, 0]), cage_radius=0.2):
     pos_contact_to_base = np.array([0, 0, cage_radius])  # Vector from contact point to drone's center of mass in body frame
     omega_base = np.cross(pos_contact_to_base, vel_base) / np.linalg.norm(pos_contact_to_base)**2
     return omega_base
 
 
 class RollingController:
-    def __init__(self, user_input=None, state_estimator=None):
+    def __init__(self, user_input=None, state_estimator=None, cage_radius=0.2):
         if user_input is not None:
             self.user_input = user_input
             
         self.se = state_estimator
+        self.cage_radius = cage_radius
      
         self.pos_target = self.se.base_pos.copy()
 
-        # Circular trajectory parameters (sampled by simulation time)
-        self.traj_radius = 0.2  # meters
-        self.traj_omega = 1.0    # rad/s
-        self.traj_center = self.se.base_pos.copy()
-        self.traj_center[0] += self.traj_radius  # start on circle at t=0 without jump
-        self.traj_center[2] = cage_radius
 
-        # todo, tune the gains
         # Initialize any necessary parameters for SE(3) control
         self.k_pos = 80.0  # Position gain
         self.k_vel = 5.0   # Velocity gain
@@ -60,25 +52,8 @@ class RollingController:
                                                 [0, 0.00289, 0],
                                                 [0, 0, 0.00508]])
         
-
-
-
-
-    def sample_circular_pos_target(self, t):
-        theta = self.traj_omega * t + np.pi  # Start at (radius, 0) when t=0
-        return np.array([
-            self.traj_center[0] + self.traj_radius * np.cos(theta),
-            self.traj_center[1] + self.traj_radius * np.sin(theta),
-            cage_radius,
-        ])
-
-    def update_target_from_time(self):
-        t = self.se.d.time
-        self.pos_target = self.sample_circular_pos_target(t)
-        
-
     def step(self):
-        self.update_target_from_time()  # Sample circular target based on simulation time
+        # pos_target is expected to be provided externally (e.g., by SimpleDrone)
         
         
         
@@ -92,7 +67,7 @@ class RollingController:
         Tz_cmd_wrt_body = np.dot(T_cmd_wrt_body, [0, 0, 1])  # Thrust command in body frame
         
         
-        omega_des = vel_base_to_omega_base(vel_des)
+        omega_des = vel_base_to_omega_base(vel_des, cage_radius=self.cage_radius)
         omega_des_wrt_body = self.se.R.T @ omega_des  # Transform desired angular velocity to body frame
         
         torque_wrt_body = self.k_omega * (omega_des_wrt_body - self.se.base_vel_ang_local) + hat(self.se.base_vel_ang_local) @ self.base_inertia_wrt_body @ self.se.base_vel_ang_local

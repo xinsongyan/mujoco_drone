@@ -39,7 +39,7 @@ def draw_motor_thrust_arrows(
     viewer,
     drone,
     motor_sites=("motor_rr", "motor_fr", "motor_rl", "motor_fl"),
-    length_scale=0.4,
+    length_scale=1.0,
     radius=0.004,
     rgba=(1, 1, 0, 0.2),
 ):

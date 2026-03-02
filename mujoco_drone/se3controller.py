@@ -78,7 +78,7 @@ class SE3Controller:
     def step(self):
         # print(f"pos_target: {self.pos_target}, yaw_target: {np.degrees(self.yaw_target)}"   )
 
-        self.udpate_targets_from_user_input()  # Update targets based on user input
+        # self.udpate_targets_from_user_input()  # Update targets based on user input
         
         acc_cmd = self.k_pos * (self.pos_target - self.se.base_pos) + \
                   self.k_vel * (self.vel_target - self.se.base_vel_lin_global) + \

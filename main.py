@@ -75,8 +75,8 @@ if __name__ == "__main__":
                 time.sleep(drone.m.opt.timestep)
 
             # Display status text at the bottom (always update regardless of pause state)
-            controller_name = getattr(drone, "controller_name", type(drone.controller).__name__)
-            viewer.set_texts([(0, 0, f"Time: {drone.d.time:.3f}", f"Paused: {paused} | Controller: {controller_name}")])
+            control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
+            viewer.set_texts([(0, 0, f"Time: {drone.d.time:.2f}", f"Paused: {paused} | Control Mode: {control_mode}")])
 
             # Always sync the viewer to process events / render
             viewer.sync()
