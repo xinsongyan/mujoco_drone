@@ -43,8 +43,8 @@ if __name__ == "__main__":
                 pass
 
         # Set initial camera to top-down view
-        viewer.cam.azimuth =0.0
-        viewer.cam.elevation = -90.0
+        viewer.cam.azimuth =225.0
+        viewer.cam.elevation = -45.0
         viewer.cam.distance = 2.0
         viewer.cam.lookat[:] = [0, 0, 0]
 
