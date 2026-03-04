@@ -1,5 +1,6 @@
 import os
 import sys
+import csv
 from datetime import datetime
 try:
     import pyautogui
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     record_fps = 30
     record_dt = 1.0 / record_fps
     frames = []
+    position_log = []
     last_record_t = None
     record_start_t = None
 
@@ -89,14 +91,34 @@ if __name__ == "__main__":
                         renderer.update_scene(drone.d, camera=viewer.cam)
                         frame = renderer.render()
                         frames.append(frame)
+
+                        base_pos = drone.state_estimator.base_pos
+                        control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
+                        position_log.append((
+                            float(drone.d.time),
+                            float(elapsed),
+                            float(base_pos[0]),
+                            float(base_pos[1]),
+                            float(base_pos[2]),
+                            str(control_mode),
+                        ))
+
                         last_record_t = drone.d.time
 
                     if elapsed > record_duration_s and len(frames) > 0:
                         os.makedirs("log", exist_ok=True)
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         out_path = os.path.join("log", f"sim_{int(record_duration_s)}s_{timestamp}.mp4")
+                        pos_path = os.path.join("log", f"sim_{int(record_duration_s)}s_{timestamp}_position.csv")
                         imageio.mimsave(out_path, frames, fps=record_fps)
+
+                        with open(pos_path, "w", newline="") as csvfile:
+                            writer = csv.writer(csvfile)
+                            writer.writerow(["sim_time_s", "elapsed_s", "x_m", "y_m", "z_m", "control_mode"])
+                            writer.writerows(position_log)
+
                         print(f"Saved recording: {out_path} ({len(frames)} frames at {record_fps} FPS)")
+                        print(f"Saved position log: {pos_path} ({len(position_log)} samples)")
                         break
 
                     # # Update dashboard every 10 steps
