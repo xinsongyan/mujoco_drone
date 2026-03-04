@@ -7,6 +7,7 @@ from mujoco_drone.state_estimator import StateEstimator
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.se3controller import SE3Controller
 from mujoco_drone.motor_mixer import MotorMixer
+from mujoco_drone.mission import PhaseCircleMission, TeleoperatedMission
 from assets.simple_drone.simple_drone_loader import load_drone
 
 from mujoco_drone.rolling_controller import RollingController
@@ -55,17 +56,22 @@ class SimpleDrone:
         self.controller = self.rolling_controller  # Choose rolling as default
         self.control_mode = "Rolling"
 
-        # Shared trajectory (can be used by multiple controllers)
-        self.traj_radius = 0.2  # meters
-        self.traj_omega = 0.6   # rad/s
-        self.traj_center = self.state_estimator.base_pos.copy()
-        self.traj_center[0] += self.traj_radius
-        self.traj_center[2] = self.cage_radius
-        self.pos_target = self.state_estimator.base_pos.copy()
+        # Mission / reference generator
+        traj_radius = 0.2  # meters
+        traj_omega = 0.6   # rad/s
+        traj_center = self.state_estimator.base_pos.copy()
+        traj_center[0] += traj_radius
+        traj_center[2] = self.cage_radius
 
-        # Edge-triggered A/B button handling for controller switching
-        self._prev_a_pressed = False
-        self._prev_b_pressed = False
+        self.mission = PhaseCircleMission(
+            center=traj_center,
+            radius=traj_radius,
+            omega=traj_omega,
+            rolling_z=self.cage_radius,
+            flying_z=0.3,
+        )
+        self.teleop_mission = TeleoperatedMission()
+        self.pos_target = self.state_estimator.base_pos.copy()
 
         # The physical parameters for the motor mixer
         dx, dy, k = 0.1, 0.1, 0.02
@@ -86,65 +92,33 @@ class SimpleDrone:
         self.d.ctrl[:4] = motor_cmd
 
     def update_controller_selection(self):
-        a_pressed = self.user_input.button_a()
-        b_pressed = self.user_input.button_b()
-
-        # A: switch to flying controller
-        if a_pressed and not self._prev_a_pressed:
-            self.controller = self.flying_controller
-            self.control_mode = "Flying"
-            print("Switched mode -> Flying (A)")
-
-        # B: switch to rolling controller
-        if b_pressed and not self._prev_b_pressed:
-            self.controller = self.rolling_controller
-            self.control_mode = "Rolling"
-            print("Switched mode -> Rolling (B)")
-
-        self._prev_a_pressed = a_pressed
-        self._prev_b_pressed = b_pressed
-
-    def sample_circular_pos_target(self, t):
-        theta = self.traj_omega * t + np.pi
-        return np.array([
-            self.traj_center[0] + self.traj_radius * np.cos(theta),
-            self.traj_center[1] + self.traj_radius * np.sin(theta),
-            self.traj_center[2],
-        ])
+        next_mode = self.teleop_mission.select_mode(self.user_input, self.control_mode)
+        if next_mode != self.control_mode:
+            self.control_mode = next_mode
+            self.controller = self.rolling_controller if next_mode == "Rolling" else self.flying_controller
+            print(f"Switched mode -> {self.control_mode} (teleop)")
 
     def update_shared_trajectory_target(self):
         t = self.d.time
-        self.pos_target = self.sample_circular_pos_target(t)
-
-        # Automatic controller selection by circular-path phase:
-        # Rolling: [0, 90), Flying: [90, 180), Rolling: [180, 270), Flying: [270, 360)
-        phase_rad = (self.traj_omega * t) % (2 * np.pi)
-        phase_deg = np.degrees(phase_rad)
-
-        if phase_deg < 90.0 or (180.0 <= phase_deg < 270.0):
-            next_mode = "Rolling"
-            next_controller = self.rolling_controller
-        else:
-            next_mode = "Flying"
-            next_controller = self.flying_controller
+        self.pos_target, next_mode, phase_deg = self.mission.target_and_mode(t)
+        next_controller = self.rolling_controller if next_mode == "Rolling" else self.flying_controller
 
         if next_mode != self.control_mode:
             self.control_mode = next_mode
             self.controller = next_controller
             print(f"Switched mode -> {self.control_mode} (phase: {phase_deg:.1f} deg)")
 
-        if self.control_mode == "Flying":
-            self.pos_target[2] = 0.3  # Keep flying target at a fixed altitude for better visualization
-            self.flying_controller.pos_target = self.pos_target.copy()  # Update flying target for visualization and control
-        elif self.control_mode == "Rolling":
-            self.rolling_controller.pos_target = self.pos_target.copy()  # Update rolling target for visualization, even if not controlling
+        # Targets are passed directly into controller step() calls.
 
     def __call__(self):
         # print(f"user_cmd: {self.user_input.get_input()}")
         # self.update_controller_selection()
         self.update_shared_trajectory_target()
 
-        self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.controller.step()
+        if self.control_mode == "Rolling":
+            self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.rolling_controller.step(self.pos_target)
+        else:
+            self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.flying_controller.step(self.pos_target)
         
         self.motor_cmd = self.motor_mixer.mix2(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 

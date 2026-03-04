@@ -44,45 +44,17 @@ class SE3Controller:
         self.base_inertia_wrt_body = np.array([[0.00226, 0, 0],
                                                 [0, 0.00289, 0],
                                                 [0, 0, 0.00508]])
-        
-        # Initialize targets from drone's current state
-        self.pos_target = self.se.base_pos.copy()
-        self.yaw_target = self.se.yaw
-        self.heading_target = np.array([np.cos(self.yaw_target), np.sin(self.yaw_target), 0])
-        self.vel_target = np.zeros(3)
-        self.acc_target = np.zeros(3)
-        self.omega_target = np.zeros(3)
 
+    def step(self, pos_target, heading_target=np.array([1.0, 0.0, 0.0]), vel_target=np.zeros(3), acc_target=np.zeros(3), omega_target=np.zeros(3)):
+        pos_target = np.array(pos_target, dtype=float)
+        heading_target = np.array(heading_target, dtype=float)
+        vel_target = np.array(vel_target, dtype=float)
+        acc_target = np.array(acc_target, dtype=float)
+        omega_target = np.array(omega_target, dtype=float)
 
-    def udpate_targets_from_user_input(self, dt=0.002):
-        # Update target position based on user input velocity commands
-        vel_des_wrt_body = np.array([self.user_input.vx(), self.user_input.vy(), self.user_input.vz()])  # Desired velocity based on user input
-        vel_des = self.se.R @ vel_des_wrt_body # Convert desired velocity from body frame to inertia frame
-        
-        # Only integrate velocity into target when there's actual user input (non-zero)
-        if np.linalg.norm(vel_des) > 1e-6:
-            self.pos_target[0] += vel_des[0] * dt  # Integrate desired position based on user input
-            self.pos_target[1] += vel_des[1] * dt  # Integrate desired position based on user input
-            # self.pos_target[2] += vel_des[2] * dt
-        
-        self.pos_target[2] += self.user_input.vz() * dt # Set target z based on user input velocity in z direction
-        
-        # Update yaw target only when there's yaw input
-        wz = self.user_input.wz()
-        if abs(wz) > 1e-6:
-            self.yaw_target += wz * dt  # Integrate yaw based on user input
-            self.heading_target = np.array([np.cos(self.yaw_target), np.sin(self.yaw_target), 0])
-        
-        # print(f"yaw_des: {np.degrees(yaw_des)}, heading_target: {self.heading_target}")
-
-    def step(self):
-        # print(f"pos_target: {self.pos_target}, yaw_target: {np.degrees(self.yaw_target)}"   )
-
-        # self.udpate_targets_from_user_input()  # Update targets based on user input
-        
-        acc_cmd = self.k_pos * (self.pos_target - self.se.base_pos) + \
-                  self.k_vel * (self.vel_target - self.se.base_vel_lin_global) + \
-                  self.acc_target  # Desired acceleration command in the inertia frame
+        acc_cmd = self.k_pos * (pos_target - self.se.base_pos) + \
+                  self.k_vel * (vel_target - self.se.base_vel_lin_global) + \
+                  acc_target  # Desired acceleration command in the inertia frame
  
         T_cmd  = self.m * acc_cmd - self.m * self.g  # Total force command
         # print(f"T_cmd: {T_cmd}", "self.m * acc_cmd :", self.m * acc_cmd , "-self.m * self.g:", -self.m * self.g)
@@ -93,7 +65,7 @@ class SE3Controller:
         # print(f"Tz_cmd_wrt_body: {Tz_cmd_wrt_body}")
         
         zd = T_cmd / (np.linalg.norm(T_cmd) + 1e-6)  # Normalize to get the direction of thrust
-        heading_target_unit = self.heading_target / np.linalg.norm(self.heading_target)  # Desired direction of thrust
+        heading_target_unit = heading_target / np.linalg.norm(heading_target)  # Desired direction of thrust
         yd = np.cross(zd, heading_target_unit)  # Orthogonal vector to b3d and b1d
         yd = yd / (np.linalg.norm(yd) + 1e-6)
         xd = np.cross(yd, zd)
@@ -114,7 +86,7 @@ class SE3Controller:
         # err_rot_wrt_body = 0.5 * vee(self.se.R.T @ Rd  - Rd.T @ self.se.R)
         err_rot_wrt_body = log(self.se.R.T @ Rd)  # Logarithm of the rotation matrix difference
 
-        err_omega_wrt_body =  self.omega_target - self.se.base_vel_ang_local 
+        err_omega_wrt_body =  omega_target - self.se.base_vel_ang_local 
 
         M_wrt_body = self.k_rot * err_rot_wrt_body \
                      + self.k_omega * err_omega_wrt_body \

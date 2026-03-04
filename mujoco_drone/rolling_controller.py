@@ -34,9 +34,7 @@ class RollingController:
             
         self.se = state_estimator
         self.cage_radius = cage_radius
-     
-        self.pos_target = self.se.base_pos.copy()
-
+    
 
         # Initialize any necessary parameters for SE(3) control
         self.k_pos = 80.0  # Position gain
@@ -52,12 +50,8 @@ class RollingController:
                                                 [0, 0.00289, 0],
                                                 [0, 0, 0.00508]])
         
-    def step(self):
-        # pos_target is expected to be provided externally (e.g., by SimpleDrone)
-        
-        
-        
-        pos_des = self.pos_target
+    def step(self, pos_target):
+        pos_des = np.array(pos_target, dtype=float)
         vel_des = 1 * (pos_des - self.se.base_pos)  # Desired velocity based on position error
         # linear part of control
         acc_cmd = self.k_pos * (pos_des - self.se.base_pos) + \
