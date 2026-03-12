@@ -37,7 +37,7 @@ class RollingController:
     
 
         # Initialize any necessary parameters for SE(3) control
-        self.k_pos = 80.0  # Position gain
+        self.k_pos = 60.0  # Position gain
         self.k_vel = 5.0   # Velocity gain
         # self.k_rot = 40.0   # Rotation gain
         self.k_omega = 2.5 # Angular velocity gain

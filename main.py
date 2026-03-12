@@ -37,7 +37,9 @@ if __name__ == "__main__":
     drone = SimpleDrone(caged=True)
 
     # Recording configuration
-    record_duration_s = 11.0
+    record_duration_s = float(getattr(drone, "mission_duration", 1.0))
+    mission_obj = getattr(drone, "mission", None)
+    mission_name = mission_obj.__class__.__name__ if mission_obj is not None else "UnknownMission"
     record_fps = 30
     record_dt = 1.0 / record_fps
     frames = []
@@ -55,11 +57,11 @@ if __name__ == "__main__":
             except Exception:
                 pass
 
-        # Set initial camera to top-down view
-        viewer.cam.azimuth =225.0
-        viewer.cam.elevation = -45.0
-        viewer.cam.distance = 2.0
-        viewer.cam.lookat[:] = [0, 0, 0]
+        # Set initial camera from mission settings
+        viewer.cam.azimuth = float(getattr(mission_obj, "camera_azimuth", 90.0))
+        viewer.cam.elevation = float(getattr(mission_obj, "camera_elevation", -10.0))
+        viewer.cam.distance = float(getattr(mission_obj, "camera_distance", 3.0))
+        viewer.cam.lookat[:] = getattr(mission_obj, "camera_lookat", [0.9, 0.0, 0.0])
 
         step_count = 0
 
@@ -77,9 +79,8 @@ if __name__ == "__main__":
                     # Visualize thrust arrows (total and per-rotor)
                     draw_thrust_visualization(viewer, drone)
 
-                    # Visualize controller position target
-                    if hasattr(drone.controller, "pos_target"):
-                        draw_pos_target_sphere(viewer, drone.controller.pos_target)
+                    # Visualize mission position target (computed once in drone step)
+                    draw_pos_target_sphere(viewer, drone.pos_target)
 
                     # Record simulation time to MP4 at fixed FPS
                     if record_start_t is None:
@@ -108,8 +109,11 @@ if __name__ == "__main__":
                     if elapsed > record_duration_s and len(frames) > 0:
                         os.makedirs("log", exist_ok=True)
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        out_path = os.path.join("log", f"sim_{int(record_duration_s)}s_{timestamp}.mp4")
-                        pos_path = os.path.join("log", f"sim_{int(record_duration_s)}s_{timestamp}_position.csv")
+                        run_name = f"{timestamp}_{mission_name}_sim_{int(record_duration_s)}s"
+                        run_dir = os.path.join("log", run_name)
+                        os.makedirs(run_dir, exist_ok=True)
+                        out_path = os.path.join(run_dir, f"{run_name}.mp4")
+                        pos_path = os.path.join(run_dir, f"{run_name}_position.csv")
                         imageio.mimsave(out_path, frames, fps=record_fps)
 
                         with open(pos_path, "w", newline="") as csvfile:
@@ -121,16 +125,27 @@ if __name__ == "__main__":
                         print(f"Saved position log: {pos_path} ({len(position_log)} samples)")
                         break
 
-                    # # Update dashboard every 10 steps
-                    # if step_count % 10 == 0:
-                    #     dashboard.update(drone, drone.d.time)
+                    # Update dashboard every 10 steps
+                    if step_count % 10 == 0:
+                        # dashboard.update(drone, drone.d.time)
+                        pass
 
                     step_count += 1
                     time.sleep(drone.m.opt.timestep)
 
                 # Display status text at the bottom (always update regardless of pause state)
                 control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
-                viewer.set_texts([(0, 0, f"Time: {drone.d.time:.2f}", f"Paused: {paused} | Control Mode: {control_mode}")])
+                cam = viewer.cam
+                cam_text = (
+                    f"azi: {cam.azimuth:.1f} | "
+                    f"ele: {cam.elevation:.1f} | "
+                    f"dis: {cam.distance:.2f} | "
+                    f"at: [{cam.lookat[0]:.2f}, {cam.lookat[1]:.2f}, {cam.lookat[2]:.2f}]"
+                )
+                viewer.set_texts([
+                    (0, 0, f"Time: {drone.d.time:.2f}", f"Paused: {paused} | Control Mode: {control_mode}"),
+                    (0, 1, "Viewer Camera", cam_text),
+                ])
 
                 # Always sync the viewer to process events / render
                 viewer.sync()

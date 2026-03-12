@@ -51,14 +51,14 @@ class MotorMixer:
         f_fl = (thrust_total + torque_x/self.dx - torque_y/self.dy + torque_z/self.k) / 4.0
         
         motor_commands = np.array([f_rr, f_fr, f_rl, f_fl])
-        
-        # It's good practice to clip the commands to a valid range (e.g., 0 to 1, or min/max PWM)
-        # We assume the simulator handles this for now.
-        
+        motor_commands = np.clip(motor_commands, -10.0, 10.0)
+
         return motor_commands
     
     def mix2(self, thrust_total, torque_roll, torque_pitch, torque_yaw):
         # Alternative mixing using the allocation matrix
         desired = np.array([thrust_total, torque_roll, torque_pitch, torque_yaw])
         motor_commands = np.linalg.solve(self.allocation_matrix, desired)
+        motor_commands = np.clip(motor_commands, -10.0, 10.0)
+
         return motor_commands

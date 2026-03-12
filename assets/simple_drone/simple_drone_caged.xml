@@ -7,6 +7,8 @@
 
     <texture name="prop_tex" type="2d" builtin="checker" width="64" height="64" rgb1="0.8 0.8 0.8" rgb2="0 0 0"/>
     <material name="prop_mat" texture="prop_tex" texrepeat="1 1" texuniform="true"/>
+
+    <mesh name="cage_mesh" file="cage (2).stl" scale="0.00181854 0.00181854 0.00181854"/>
   </asset>
 
   <visual>
@@ -28,12 +30,13 @@
       <geom type="cylinder" fromto="0 0 0 0 0 0.4" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0"/>
     </body>
 
-    <body name="base" pos="0 0 0.25">
+    <body name="base" pos="0 0 0.2">
       <freejoint/>
 
       <geom name="chassis" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 0.5" mass="0.25"/>
 
-      <geom name="cage" type="sphere" mass="0" size="0.2" pos="0.0 0 0.0"  rgba="1 0 0 0.2"/>
+      <geom name="cage" type="sphere" mass="0" size="0.2" pos="0.0 0 0.0" rgba="1 0 0 0.0"/>
+      <geom name="cage_visual" type="mesh" mesh="cage_mesh" pos="0.0 0 0.0" rgba="0.65 0.65 0.65 0.3" contype="0" conaffinity="0" mass="0"/>
 
 
       <site name="body_frame" pos="0 0 0"/>
@@ -75,10 +78,10 @@
   </worldbody>
 
   <actuator>
-    <motor name="motor_rr" site="motor_rr" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-10 10"/>
-    <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-10 10"/>
-    <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-10 10"/>
-    <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-10 10"/>
+    <motor name="motor_rr" site="motor_rr" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
   </actuator>
 
 

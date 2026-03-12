@@ -32,8 +32,10 @@ class SE3Controller:
         self.user_input = user_input
         self.se = state_estimator
         # Initialize any necessary parameters for SE(3) control
-        self.k_pos = 30.0  # Position gain
-        self.k_vel = 5.0   # Velocity gain
+        self.k_pos_xy = 30.0  # Position gain for x/y
+        self.k_pos_z = 80.0   # Position gain for z
+        self.k_vel_xy = 5.0   # Velocity gain for x/y
+        self.k_vel_z = 10.0    # Velocity gain for z
         self.k_rot = 30.0   # Rotation gain
         self.k_omega = 1.0 # Angular velocity gain
 
@@ -52,9 +54,16 @@ class SE3Controller:
         acc_target = np.array(acc_target, dtype=float)
         omega_target = np.array(omega_target, dtype=float)
 
-        acc_cmd = self.k_pos * (pos_target - self.se.base_pos) + \
-                  self.k_vel * (vel_target - self.se.base_vel_lin_global) + \
-                  acc_target  # Desired acceleration command in the inertia frame
+        pos_err = pos_target - self.se.base_pos
+        vel_err = vel_target - self.se.base_vel_lin_global
+        acc_cmd = np.array(
+            [
+                self.k_pos_xy * pos_err[0] + self.k_vel_xy * vel_err[0] + acc_target[0],
+                self.k_pos_xy * pos_err[1] + self.k_vel_xy * vel_err[1] + acc_target[1],
+                self.k_pos_z * pos_err[2] + self.k_vel_z * vel_err[2] + acc_target[2],
+            ],
+            dtype=float,
+        )  # Desired acceleration command in the inertia frame
  
         T_cmd  = self.m * acc_cmd - self.m * self.g  # Total force command
         # print(f"T_cmd: {T_cmd}", "self.m * acc_cmd :", self.m * acc_cmd , "-self.m * self.g:", -self.m * self.g)

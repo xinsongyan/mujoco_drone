@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import mujoco
 
 from mujoco_drone.input.user_input import UserInput
@@ -7,7 +6,7 @@ from mujoco_drone.state_estimator import StateEstimator
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.se3controller import SE3Controller
 from mujoco_drone.motor_mixer import MotorMixer
-from mujoco_drone.mission import PhaseCircleMission, TeleoperatedMission
+from mujoco_drone.mission import PhasedStraightLineMission, TeleoperatedMission
 from assets.simple_drone.simple_drone_loader import load_drone
 
 from mujoco_drone.rolling_controller import RollingController
@@ -53,23 +52,20 @@ class SimpleDrone:
             cage_radius=self.cage_radius,
         )
 
-        self.controller = self.rolling_controller  # Choose rolling as default
+        self.controller = self.rolling_controller
         self.control_mode = "Rolling"
 
         # Mission / reference generator
-        traj_radius = 0.2  # meters
-        traj_omega = 0.6   # rad/s
-        traj_center = self.state_estimator.base_pos.copy()
-        traj_center[0] += traj_radius
-        traj_center[2] = self.cage_radius
-
-        self.mission = PhaseCircleMission(
-            center=traj_center,
-            radius=traj_radius,
-            omega=traj_omega,
-            rolling_z=self.cage_radius,
-            flying_z=0.3,
+        line_start = self.state_estimator.base_pos.copy()
+        rolling_z = self.cage_radius
+        self.mission = PhasedStraightLineMission(
+            start=line_start,
+            segment_length=0.6,
+            line_speed=0.08,
+            rolling_z=rolling_z,
+            flying_z=0.35,
         )
+        self.mission_duration = self.mission.mission_duration
         self.teleop_mission = TeleoperatedMission()
         self.pos_target = self.state_estimator.base_pos.copy()
 
@@ -100,13 +96,13 @@ class SimpleDrone:
 
     def update_shared_trajectory_target(self):
         t = self.d.time
-        self.pos_target, next_mode, phase_deg = self.mission.target_and_mode(t)
+        self.pos_target, next_mode, phase_id = self.mission.target_and_mode(t)
         next_controller = self.rolling_controller if next_mode == "Rolling" else self.flying_controller
 
         if next_mode != self.control_mode:
             self.control_mode = next_mode
             self.controller = next_controller
-            print(f"Switched mode -> {self.control_mode} (phase: {phase_deg:.1f} deg)")
+            print(f"Switched mode -> {self.control_mode} (phase: {phase_id})")
 
         # Targets are passed directly into controller step() calls.
 
