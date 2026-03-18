@@ -14,7 +14,7 @@ def load_drone(caged=False):
         tuple: (model, data, cage_radius) - MuJoCo model, data, and cage radius (None if not present)
     """
     if caged:
-        xml_path = os.path.join('assets/simple_drone/img/scene_positive_takeoff.xml')
+        xml_path = os.path.join('assets/simple_drone/simple_drone_caged.xml')
         drone_type = "caged"
     else:
         xml_path = os.path.join('assets/simple_drone/simple_drone.xml')

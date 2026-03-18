@@ -1,7 +1,9 @@
+
 import os
 import sys
 import csv
 from datetime import datetime
+import argparse
 try:
     import pyautogui
 except Exception:
@@ -32,17 +34,41 @@ def key_callback(keycode):
 
 # ── Mission selector ─────────────────────────────────────────────────────────
 # Set MISSION to "phased_straight_line", "flying", "rolling", or "phase_circle"
-MISSION = "phase_circle"
+MISSION = "phased_straight_line"
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 # Offscreen renderer can fail on some Linux/GLX setups. If that happens,
 # recording will be disabled at runtime and simulation will continue.
-ENABLE_RECORDING = True
+
+ENABLE_RECORDING = False
+ENABLE_DEBUG_DRAW = False  # Default, can be overridden by CLI
+ENABLE_DASHBOARD = False  # Default, can be overridden by CLI
+
+
 
 
 if __name__ == "__main__":
-    # Initialize dashboard
-    # dashboard = DroneSimulationDashboard()
+    parser = argparse.ArgumentParser(description="MuJoCo Drone Simulation")
+    parser.add_argument("--record", dest="record", action="store_true", help="Enable video recording")
+    parser.add_argument("--no-record", dest="record", action="store_false", help="Disable video recording")
+    parser.set_defaults(record=False)
+    parser.add_argument("--debug-draw", dest="debug_draw", action="store_true", help="Enable debug drawing (thrust/target)")
+    parser.add_argument("--no-debug-draw", dest="debug_draw", action="store_false", help="Disable debug drawing (thrust/target)")
+    parser.set_defaults(debug_draw=False)
+    parser.add_argument("--dashboard", dest="dashboard", action="store_true", help="Enable dashboard window")
+    parser.add_argument("--no-dashboard", dest="dashboard", action="store_false", help="Disable dashboard window")
+    parser.set_defaults(dashboard=False)
+    args = parser.parse_args()
+
+    ENABLE_RECORDING = args.record
+    ENABLE_DEBUG_DRAW = args.debug_draw
+    ENABLE_DASHBOARD = args.dashboard
+
+    # Initialize dashboard if enabled
+    dashboard = None
+    if ENABLE_DASHBOARD:
+        dashboard = DroneSimulationDashboard()
 
     # Initialize the drone
     drone = SimpleDrone(caged=True)
@@ -80,7 +106,7 @@ if __name__ == "__main__":
     else:  # "phased_straight_line"
         mission = PhasedStraightLineMission(
             start=drone.state_estimator.base_pos.copy(),
-            segment_length=0.6,
+            segment_length=0.2,
             line_speed=0.08,
             rolling_z=drone.cage_radius,
             flying_z=0.35,
@@ -135,7 +161,8 @@ if __name__ == "__main__":
                     viewer.user_scn.ngeom = 0
                     
                     # Visualize thrust arrows (total and per-rotor)
-                    draw_thrust_visualization(viewer, drone)
+                    if ENABLE_DEBUG_DRAW:
+                        draw_thrust_visualization(viewer, drone)
 
                     # Visualize mission position target (computed once in drone step)
                     draw_pos_target_sphere(viewer, drone.pos_target)
@@ -189,13 +216,13 @@ if __name__ == "__main__":
                         print(f"Saved position log: {pos_path} ({len(position_log)} samples)")
                         break
 
+
                     # Update dashboard every 10 steps
-                    if step_count % 10 == 0:
-                        # dashboard.update(drone, drone.d.time)
-                        pass
+                    if ENABLE_DASHBOARD and dashboard is not None and step_count % 10 == 0:
+                        dashboard.update(drone, drone.d.time)
 
                     step_count += 1
-                    time.sleep(drone.m.opt.timestep)
+                    # time.sleep(drone.m.opt.timestep)
 
                 # Display status text at the bottom (always update regardless of pause state)
                 control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
