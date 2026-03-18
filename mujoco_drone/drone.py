@@ -83,34 +83,50 @@ class SimpleDrone:
         self.mission = mission
         self.mission_duration = mission.mission_duration
 
-    def update_controller_selection(self):
-        next_mode = self.teleop_mission.select_mode(self.user_input, self.control_mode)
-        if next_mode != self.control_mode:
-            self.control_mode = next_mode
-            self.controller = self.rolling_controller if next_mode == "Rolling" else self.flying_controller
-            print(f"Switched mode -> {self.control_mode} (teleop)")
 
-    def update_shared_trajectory_target(self):
+    def decide_body_z(self):
+        # Get current orientation (rotation matrix) from state_estimator
+        R = self.state_estimator.R  # 3x3 rotation matrix
+        # Body z axis in world frame is the third column of R
+        body_z_axis = R[:, 2]
+        import numpy as np
+        upward = np.dot(body_z_axis, np.array([0, 0, 1])) > 0
+        return 1 if upward else -1
+
+    def update_cmd(self):
         t = self.d.time
-        self.pos_target, next_mode, phase_id = self.mission.target_and_mode(t)
-        next_controller = self.rolling_controller if next_mode == "Rolling" else self.flying_controller
+        self.pos_target, cmd_mode, phase_id = self.mission.target_and_mode(t)
+        cmd_controller = self.rolling_controller if cmd_mode == "Rolling" else self.flying_controller
 
-        if next_mode != self.control_mode:
-            self.control_mode = next_mode
-            self.controller = next_controller
+        # Add a flag for transition from Rolling to Flying
+        self.just_transitioned_rolling_to_flying = False
+        
+
+        if cmd_mode != self.control_mode:
+            if self.control_mode == "Rolling" and cmd_mode == "Flying":
+                self.just_transitioned_rolling_to_flying = True
+                self.body_z_target = self.decide_body_z()
+                print(f"Transitioning to Flying mode. Body z target: {self.body_z_target}")
+  
+            self.control_mode = cmd_mode
+            self.controller = cmd_controller
             print(f"Switched mode -> {self.control_mode} (phase: {phase_id})")
 
-        # Targets are passed directly into controller step() calls.
+  
 
     def __call__(self):
-        # print(f"user_cmd: {self.user_input.get_input()}")
-        # self.update_controller_selection()
-        self.update_shared_trajectory_target()
+
+        self.update_cmd()
 
         if self.control_mode == "Rolling":
             self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.rolling_controller.step(self.pos_target)
+        elif self.control_mode == "Flying":
+            self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.flying_controller.step(self.pos_target, 
+                                                                                                                  x_target=[1.0, 0.0, 0.0], 
+                                                                                                                  z_target=self.body_z_target)
         else:
-            self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.flying_controller.step(self.pos_target)
+            raise ValueError(f"Unknown control mode: {self.control_mode}")
+        
         
         self.motor_cmd = self.motor_mixer.mix2(self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw)
 

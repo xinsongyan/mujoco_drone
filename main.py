@@ -106,7 +106,7 @@ if __name__ == "__main__":
     else:  # "phased_straight_line"
         mission = PhasedStraightLineMission(
             start=drone.state_estimator.base_pos.copy(),
-            segment_length=0.2,
+            segment_length=0.4,
             line_speed=0.08,
             rolling_z=drone.cage_radius,
             flying_z=0.35,
