@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import QApplication
 from mujoco_drone.drone import SimpleDrone
 from mujoco_drone.dashboard import DroneSimulationDashboard
 from mujoco_drone.visuals import draw_thrust_visualization, draw_pos_target_sphere
+from mujoco_drone.mission import PhasedStraightLineMission, FlyingMission, RollingMission, PhaseCircleMission
 
 # Pause state
 paused = False
@@ -29,6 +30,16 @@ def key_callback(keycode):
         print(f"Simulation {'paused' if paused else 'resumed'}")
 
 
+# ── Mission selector ─────────────────────────────────────────────────────────
+# Set MISSION to "phased_straight_line", "flying", "rolling", or "phase_circle"
+MISSION = "phase_circle"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Offscreen renderer can fail on some Linux/GLX setups. If that happens,
+# recording will be disabled at runtime and simulation will continue.
+ENABLE_RECORDING = True
+
+
 if __name__ == "__main__":
     # Initialize dashboard
     # dashboard = DroneSimulationDashboard()
@@ -36,10 +47,50 @@ if __name__ == "__main__":
     # Initialize the drone
     drone = SimpleDrone(caged=True)
 
+    # Build and inject mission
+    if MISSION == "flying":
+        mission = FlyingMission(
+            segment_length=1.0,
+            flying_z=0.35,
+            segment_duration=3.0,
+            hold_duration=0.5,
+            cycles=1,
+        )
+    elif MISSION == "rolling":
+        start = drone.state_estimator.base_pos.copy()
+        radius = 0.4
+        mission = RollingMission(
+            center=[start[0]+radius, start[1], drone.cage_radius],
+            radius=radius,
+            omega=0.4,
+            rolling_z=drone.cage_radius,
+            cycles=1,
+            camera_lookat=(radius, 0.0, 0.2)
+        )
+    elif MISSION == "phase_circle":
+        start = drone.state_estimator.base_pos.copy()
+        radius = 0.4
+        mission = PhaseCircleMission(
+            center=[start[0] + radius, start[1], drone.cage_radius],
+            radius=radius,
+            omega=0.4,
+            rolling_z=drone.cage_radius,
+            flying_z=0.35,
+        )
+    else:  # "phased_straight_line"
+        mission = PhasedStraightLineMission(
+            start=drone.state_estimator.base_pos.copy(),
+            segment_length=0.6,
+            line_speed=0.08,
+            rolling_z=drone.cage_radius,
+            flying_z=0.35,
+        )
+    drone.set_mission(mission)
+
     # Recording configuration
-    record_duration_s = float(getattr(drone, "mission_duration", 1.0))
-    mission_obj = getattr(drone, "mission", None)
-    mission_name = mission_obj.__class__.__name__ if mission_obj is not None else "UnknownMission"
+    record_duration_s = float(drone.mission_duration)
+    mission_obj = drone.mission
+    mission_name = mission_obj.__class__.__name__
     record_fps = 30
     record_dt = 1.0 / record_fps
     frames = []
@@ -48,7 +99,14 @@ if __name__ == "__main__":
     record_start_t = None
 
     with mujoco.viewer.launch_passive(drone.m, drone.d, key_callback=key_callback) as viewer:
-        renderer = mujoco.Renderer(drone.m, width=1920, height=1080)
+        renderer = None
+        recording_enabled = ENABLE_RECORDING
+        if recording_enabled:
+            try:
+                renderer = mujoco.Renderer(drone.m, width=1920, height=1080)
+            except Exception as exc:
+                recording_enabled = False
+                print(f"Recording disabled: failed to initialize renderer ({exc})")
         
         # This toggles the UI (Side panels + Overlays) just like Shift+Tab
         if pyautogui is not None:
@@ -88,25 +146,31 @@ if __name__ == "__main__":
                         last_record_t = drone.d.time - record_dt
 
                     elapsed = drone.d.time - record_start_t
-                    if elapsed <= record_duration_s and (drone.d.time - last_record_t) >= record_dt:
-                        renderer.update_scene(drone.d, camera=viewer.cam)
-                        frame = renderer.render()
-                        frames.append(frame)
+                    if recording_enabled and elapsed <= record_duration_s and (drone.d.time - last_record_t) >= record_dt:
+                        try:
+                            renderer.update_scene(drone.d, camera=viewer.cam)
+                            frame = renderer.render()
+                            frames.append(frame)
 
-                        base_pos = drone.state_estimator.base_pos
-                        control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
-                        position_log.append((
-                            float(drone.d.time),
-                            float(elapsed),
-                            float(base_pos[0]),
-                            float(base_pos[1]),
-                            float(base_pos[2]),
-                            str(control_mode),
-                        ))
+                            base_pos = drone.state_estimator.base_pos
+                            control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
+                            position_log.append((
+                                float(drone.d.time),
+                                float(elapsed),
+                                float(base_pos[0]),
+                                float(base_pos[1]),
+                                float(base_pos[2]),
+                                str(control_mode),
+                            ))
 
-                        last_record_t = drone.d.time
+                            last_record_t = drone.d.time
+                        except Exception as exc:
+                            recording_enabled = False
+                            frames.clear()
+                            position_log.clear()
+                            print(f"Recording disabled during runtime ({exc})")
 
-                    if elapsed > record_duration_s and len(frames) > 0:
+                    if recording_enabled and elapsed > record_duration_s and len(frames) > 0:
                         os.makedirs("log", exist_ok=True)
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         run_name = f"{timestamp}_{mission_name}_sim_{int(record_duration_s)}s"
@@ -150,4 +214,8 @@ if __name__ == "__main__":
                 # Always sync the viewer to process events / render
                 viewer.sync()
         finally:
-            renderer.close()
+            if renderer is not None:
+                try:
+                    renderer.close()
+                except Exception:
+                    pass

@@ -40,10 +40,10 @@
 
 
       <site name="body_frame" pos="0 0 0"/>
-      <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0.2 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0.2 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0 0.2" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0.2 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0.2 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0 0.2" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0" mass="0"/>
 
       <body name="rotor_rr" pos="-0.1 -0.1 0">
         <!-- <joint name="j_rr" type="hinge" axis="0 0 1" damping="0.02"/> -->

@@ -97,11 +97,32 @@ class PhasedStraightLineMission:
 class FlyingMission:
     """Pure flying mission that cycles through target poses.
 
-    The generated trajectory linearly interpolates between each pair of poses,
-    with an optional hold duration at every target pose.
+    By default generates a rectangular path from the origin using segment_length.
+    Custom poses can be supplied to override the default path.
     """
 
-    def __init__(self, poses, segment_duration=0.5, hold_duration=0.2, cycles=2):
+    def __init__(
+        self,
+        poses=None,
+        segment_length=1.0,
+        flying_z=0.35,
+        segment_duration=3.0,
+        hold_duration=0.5,
+        cycles=1,
+        camera_azimuth=-125.0,
+        camera_elevation=-45.0,
+        camera_distance=3.0,
+        camera_lookat=(0.5, 0.5, 0.35),
+    ):
+        if poses is None:
+            s = float(segment_length)
+            z = float(flying_z)
+            poses = [
+                [0.0, 0.0, z],
+                [s,   0.0, z],
+                [s,   s,   z],
+                [0.0, s,   z],
+            ]
         poses = np.array(poses, dtype=float)
         if poses.ndim != 2 or poses.shape[1] != 3 or poses.shape[0] < 2:
             raise ValueError("poses must be shape (N, 3) with N >= 2")
@@ -122,6 +143,12 @@ class FlyingMission:
         self.phase_duration = self.segment_duration + self.hold_duration
         self.loop_duration = float(self.num_poses) * self.phase_duration
         self.mission_duration = self.loop_duration * float(self.cycles)
+        self.camera_azimuth = float(camera_azimuth)
+        self.camera_elevation = float(camera_elevation)
+        self.camera_distance = float(camera_distance)
+        self.camera_lookat = np.array(camera_lookat, dtype=float).copy()
+        if self.camera_lookat.shape != (3,):
+            raise ValueError("camera_lookat must be shape (3,)")
 
     def target_and_mode(self, t):
         t_clamped = min(max(float(t), 0.0), self.mission_duration)
@@ -144,7 +171,18 @@ class FlyingMission:
 class RollingMission:
     """Pure rolling mission that tracks a circular path."""
 
-    def __init__(self, center, radius=0.4, omega=0.6, rolling_z=0.2, cycles=2):
+    def __init__(
+        self,
+        center,
+        radius=0.4,
+        omega=0.4,
+        rolling_z=0.2,
+        cycles=1,
+        camera_azimuth=-125.0,
+        camera_elevation=-45.0,
+        camera_distance=3.0,
+        camera_lookat=(0.0, 0.0, 0.2),
+    ):
         self.center = np.array(center, dtype=float).copy()
         if self.center.shape != (3,):
             raise ValueError("center must be shape (3,)")
@@ -153,6 +191,12 @@ class RollingMission:
         self.omega = float(omega)
         self.rolling_z = float(rolling_z)
         self.cycles = int(cycles)
+        self.camera_azimuth = float(camera_azimuth)
+        self.camera_elevation = float(camera_elevation)
+        self.camera_distance = float(camera_distance)
+        self.camera_lookat = np.array(camera_lookat, dtype=float).copy()
+        if self.camera_lookat.shape != (3,):
+            raise ValueError("camera_lookat must be shape (3,)")
 
         if self.radius <= 0.0:
             raise ValueError("radius must be > 0")
@@ -198,12 +242,36 @@ class PhaseCircleMission:
         omega=0.6,
         rolling_z=0.2,
         flying_z=0.35,
+        cycles=1,
+        camera_azimuth=-125.0,
+        camera_elevation=-45.0,
+        camera_distance=3.0,
+        camera_lookat=(0.4, 0.0, 0.2),
     ):
         self.center = np.array(center, dtype=float).copy()
         self.radius = float(radius)
         self.omega = float(omega)
         self.rolling_z = float(rolling_z)
         self.flying_z = float(flying_z)
+        self.cycles = int(cycles)
+        self.camera_azimuth = float(camera_azimuth)
+        self.camera_elevation = float(camera_elevation)
+        self.camera_distance = float(camera_distance)
+        self.camera_lookat = np.array(camera_lookat, dtype=float).copy()
+
+        if self.center.shape != (3,):
+            raise ValueError("center must be shape (3,)")
+        if self.radius <= 0.0:
+            raise ValueError("radius must be > 0")
+        if np.isclose(self.omega, 0.0):
+            raise ValueError("omega must be non-zero")
+        if self.cycles <= 0:
+            raise ValueError("cycles must be > 0")
+        if self.camera_lookat.shape != (3,):
+            raise ValueError("camera_lookat must be shape (3,)")
+
+        self.period = (2.0 * np.pi) / abs(self.omega)
+        self.mission_duration = self.period * float(self.cycles)
 
     def sample_circle_xy(self, t):
         theta = self.omega * t + np.pi
@@ -222,8 +290,9 @@ class PhaseCircleMission:
         return "Flying", phase_deg
 
     def target_and_mode(self, t):
-        xy = self.sample_circle_xy(t)
-        mode, phase_deg = self.mode_from_time(t)
+        t_clamped = min(max(float(t), 0.0), self.mission_duration)
+        xy = self.sample_circle_xy(t_clamped)
+        mode, phase_deg = self.mode_from_time(t_clamped)
         z = self.rolling_z if mode == "Rolling" else self.flying_z
         pos_target = np.array([xy[0], xy[1], z], dtype=float)
         return pos_target, mode, phase_deg

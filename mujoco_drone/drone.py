@@ -6,7 +6,7 @@ from mujoco_drone.state_estimator import StateEstimator
 from mujoco_drone.cascaded_controller import CascadedController
 from mujoco_drone.se3controller import SE3Controller
 from mujoco_drone.motor_mixer import MotorMixer
-from mujoco_drone.mission import PhasedStraightLineMission, TeleoperatedMission
+from mujoco_drone.mission import TeleoperatedMission
 from assets.simple_drone.simple_drone_loader import load_drone
 
 from mujoco_drone.rolling_controller import RollingController
@@ -55,17 +55,9 @@ class SimpleDrone:
         self.controller = self.rolling_controller
         self.control_mode = "Rolling"
 
-        # Mission / reference generator
-        line_start = self.state_estimator.base_pos.copy()
-        rolling_z = self.cage_radius
-        self.mission = PhasedStraightLineMission(
-            start=line_start,
-            segment_length=0.6,
-            line_speed=0.08,
-            rolling_z=rolling_z,
-            flying_z=0.35,
-        )
-        self.mission_duration = self.mission.mission_duration
+        # Mission is injected externally via set_mission()
+        self.mission = None
+        self.mission_duration = None
         self.teleop_mission = TeleoperatedMission()
         self.pos_target = self.state_estimator.base_pos.copy()
 
@@ -86,6 +78,10 @@ class SimpleDrone:
     def set_motor_cmd(self, motor_cmd):
         # Set the motor commands to the actuators
         self.d.ctrl[:4] = motor_cmd
+
+    def set_mission(self, mission):
+        self.mission = mission
+        self.mission_duration = mission.mission_duration
 
     def update_controller_selection(self):
         next_mode = self.teleop_mission.select_mode(self.user_input, self.control_mode)

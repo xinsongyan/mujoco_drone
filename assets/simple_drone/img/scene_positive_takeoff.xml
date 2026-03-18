@@ -1,7 +1,8 @@
 <mujoco model="quadcopter">
-  <option gravity="0 0 -9.81" timestep="0.002"/>
+  <option gravity="0 0 0" timestep="0.002"/>
 
   <asset>
+    <texture type="skybox" builtin="flat" rgb1="1 1 1" rgb2="1 1 1" width="32" height="32"/>
     <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
 
@@ -10,16 +11,16 @@
   </asset>
 
   <visual>
+    <global offwidth="1920" offheight="1080"/>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-    <rgba haze="0.15 0.25 0.35 1"/>
-    <global azimuth="-20" elevation="-20" ellipsoidinertia="true"/>
+    <rgba haze="1 1 1 1"/>
   </visual>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
 
     <!-- <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/> -->
-    <geom name="floor" type="plane" size="0 0 100" rgba="1 1 1 0.8"/>
+    <!-- <geom name="floor" type="plane" size="0 0 100" rgba="1 1 1 0.8"/> -->
 
     <body name="world_frame" pos="0 0 0">
       <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
@@ -28,7 +29,7 @@
       <geom type="cylinder" fromto="0 0 0 0 0 0.4" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0"/>
     </body>
 
-    <body name="base" pos="0 0 0.25">
+    <body name="base" pos="0.3 0 0.2" euler="0 30 0">
       <freejoint/>
 
       <geom name="chassis" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 0.5" mass="0.25"/>
@@ -37,10 +38,10 @@
 
 
       <site name="body_frame" pos="0 0 0"/>
-      <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0.2 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0.2 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0"/>
-      <geom type="cylinder" fromto="0 0 0 0 0 0.2" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0"/>
+      <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0.2 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0.2 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0 0.2" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0" mass="0"/>
 
       <body name="rotor_rr" pos="-0.1 -0.1 0">
         <!-- <joint name="j_rr" type="hinge" axis="0 0 1" damping="0.02"/> -->
@@ -72,6 +73,45 @@
 
     </body>
 
+    <body name="base_2" pos="0.8 0.0 0.5" euler="0 0 0">
+      <freejoint/>
+
+      <geom name="chassis_2" type="box" size=".1 .05 .02" rgba="0.2 0.2 0.2 0.5" mass="0.25"/>
+
+      <geom name="cage_2" type="sphere" mass="0" size="0.2" pos="0.0 0 0.0" rgba="1 0.65 0 0.2"/>
+
+      <site name="body_frame_2" pos="0 0 0"/>
+      <geom type="sphere" size="0.01" rgba="1 1 1 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0.2 0 0" size="0.003" rgba="1 0 0 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0.2 0" size="0.003" rgba="0 1 0 1" contype="0" conaffinity="0" mass="0"/>
+      <geom type="cylinder" fromto="0 0 0 0 0 0.2" size="0.003" rgba="0 0 1 1" contype="0" conaffinity="0" mass="0"/>
+
+      <body name="rotor_rr_2" pos="-0.1 -0.1 0">
+        <inertial pos="0 0 0" mass="0.05" diaginertia="5e-6 5e-6 9e-6"/>
+        <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
+        <site name="motor_rr_2" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
+      </body>
+
+      <body name="rotor_fr_2" pos="0.1 -0.1 0">
+        <inertial pos="0 0 0" mass="0.05" diaginertia="5e-6 5e-6 9e-6"/>
+        <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
+        <site name="motor_fr_2" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
+      </body>
+
+      <body name="rotor_rl_2" pos="-0.1 0.1 0">
+        <inertial pos="0 0 0" mass="0.05" diaginertia="5e-6 5e-6 9e-6"/>
+        <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
+        <site name="motor_rl_2" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
+      </body>
+
+      <body name="rotor_fl_2" pos="0.1 0.1 0">
+        <inertial pos="0 0 0" mass="0.05" diaginertia="5e-6 5e-6 9e-6"/>
+        <geom type="cylinder" size=".05 .001" rgba="0.8 0.8 0.8 0.8" material="prop_mat"/>
+        <site name="motor_fl_2" type="cylinder" size="0.01 0.003" pos="0 0 0"/>
+      </body>
+
+    </body>
+
   </worldbody>
 
   <actuator>
@@ -79,6 +119,10 @@
     <motor name="motor_fr" site="motor_fr" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
     <motor name="motor_rl" site="motor_rl" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
     <motor name="motor_fl" site="motor_fl" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_rr_2_act" site="motor_rr_2" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_fr_2_act" site="motor_fr_2" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_rl_2_act" site="motor_rl_2" gear="0 0 1 0 0 -0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
+    <motor name="motor_fl_2_act" site="motor_fl_2" gear="0 0 1 0 0 0.02" ctrllimited="true" ctrlrange="-1000 1000"/>
   </actuator>
 
 
