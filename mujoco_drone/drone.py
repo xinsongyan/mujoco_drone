@@ -1,6 +1,6 @@
 import os
 import mujoco
-
+import numpy as np
 from mujoco_drone.input.user_input import UserInput
 from mujoco_drone.state_estimator import StateEstimator
 from mujoco_drone.cascaded_controller import CascadedController
@@ -84,12 +84,24 @@ class SimpleDrone:
         self.mission_duration = mission.mission_duration
 
 
+    def decide_body_x(self):
+        # Get current orientation (rotation matrix) from state_estimator
+        R = self.state_estimator.R  # 3x3 rotation matrix
+        # Body x axis in world frame is the first column of R
+        body_x_axis = R[:, 0]
+        body_x_axis_proj_on_xy = body_x_axis.copy()
+        body_x_axis_proj_on_xy[2] = 0  # Project onto XY plane
+        body_x_axis_proj_on_xy /= np.linalg.norm(body_x_axis_proj_on_xy) + 1e-6  # Normalize
+        return body_x_axis_proj_on_xy
+
+
+
     def decide_body_z(self):
         # Get current orientation (rotation matrix) from state_estimator
         R = self.state_estimator.R  # 3x3 rotation matrix
         # Body z axis in world frame is the third column of R
         body_z_axis = R[:, 2]
-        import numpy as np
+        
         upward = np.dot(body_z_axis, np.array([0, 0, 1])) > 0
         return 1 if upward else -1
 
@@ -105,6 +117,8 @@ class SimpleDrone:
         if cmd_mode != self.control_mode:
             if self.control_mode == "Rolling" and cmd_mode == "Flying":
                 self.just_transitioned_rolling_to_flying = True
+                self.body_x_target = self.decide_body_x()
+                print(f"Transitioning to Flying mode. Body x target: {self.body_x_target}")
                 self.body_z_target = self.decide_body_z()
                 print(f"Transitioning to Flying mode. Body z target: {self.body_z_target}")
   
@@ -122,7 +136,7 @@ class SimpleDrone:
             self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.rolling_controller.step(self.pos_target)
         elif self.control_mode == "Flying":
             self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.flying_controller.step(self.pos_target, 
-                                                                                                                  x_target=[1.0, 0.0, 0.0], 
+                                                                                                                  x_target=self.body_x_target, 
                                                                                                                   z_target=self.body_z_target)
         else:
             raise ValueError(f"Unknown control mode: {self.control_mode}")
