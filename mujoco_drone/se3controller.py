@@ -54,9 +54,9 @@ class SE3Controller:
                                                 [0, 0, 0.00508]])
 
     def step(self, pos_target, x_target=np.array([1.0, 0.0, 0.0]), z_target=1, vel_target=np.zeros(3), acc_target=np.zeros(3), omega_target=np.zeros(3)):
-        # todo: add flight z orientation input and use it to determine the desired orientation during flying mode
+        
         pos_target = np.array(pos_target, dtype=float)
-        x_target = np.array(x_target, dtype=float)
+        x_target = np.array(x_target, dtype=float) # todo: the heading need to be controlled if double side flight is enabled,
         vel_target = np.array(vel_target, dtype=float)
         acc_target = np.array(acc_target, dtype=float)
         omega_target = np.array(omega_target, dtype=float)
@@ -81,7 +81,7 @@ class SE3Controller:
         # print(f"Tz_cmd_wrt_body: {Tz_cmd_wrt_body}")
         
         zd = T_cmd / (np.linalg.norm(T_cmd) + 1e-6)  # Normalize to get the direction of thrust
-        zd = zd * z_target # todo: check this line
+        zd = zd * z_target 
         yd = np.cross(zd, unit_vec(x_target))  # Orthogonal vector to b3d and b1d
         xd = np.cross(unit_vec(yd), zd)
         Rd = np.column_stack((xd, yd, zd))  # Desired rotation matrix
