@@ -50,12 +50,14 @@ class RollingController:
                                                 [0, 0.00289, 0],
                                                 [0, 0, 0.00508]])
         
-    def step(self, pos_target):
+    def step(self, pos_target, vel_target=None, acc_target=None):
         pos_des = np.array(pos_target, dtype=float)
-        vel_des = 1 * (pos_des - self.se.base_pos)  # Desired velocity based on position error
+        vel_des = np.array(vel_target, dtype=float) if vel_target is not None else np.zeros(3)
+        acc_des = np.array(acc_target, dtype=float) if acc_target is not None else np.zeros(3)
         # linear part of control
         acc_cmd = self.k_pos * (pos_des - self.se.base_pos) + \
-                  self.k_vel * (vel_des - self.se.base_vel_lin_global)
+                  self.k_vel * (vel_des - self.se.base_vel_lin_global) + \
+                  acc_des 
         T_cmd = self.m * (acc_cmd)  # Total force command
         T_cmd_wrt_body = self.se.R.T @ T_cmd  # Transform force command
         Tz_cmd_wrt_body = np.dot(T_cmd_wrt_body, [0, 0, 1])  # Thrust command in body frame

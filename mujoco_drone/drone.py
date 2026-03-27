@@ -107,7 +107,7 @@ class SimpleDrone:
 
     def update_cmd(self):
         t = self.d.time
-        self.pos_target, cmd_mode, phase_id = self.mission.target_and_mode(t)
+        self.pos_target, self.vel_target, self.acc_target, cmd_mode, phase_id = self.mission.target_and_mode(t)
         cmd_controller = self.rolling_controller if cmd_mode == "Rolling" else self.flying_controller
 
         # Add a flag for transition from Rolling to Flying
@@ -133,7 +133,9 @@ class SimpleDrone:
         self.update_cmd()
 
         if self.control_mode == "Rolling":
-            self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.rolling_controller.step(self.pos_target)
+            self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.rolling_controller.step(self.pos_target, 
+                                                                                                                   self.vel_target, 
+                                                                                                                   self.acc_target)
         elif self.control_mode == "Flying":
             self.thrust_total, self.torque_roll, self.torque_pitch, self.torque_yaw = self.flying_controller.step(self.pos_target, 
                                                                                                                   x_target=self.body_x_target, 

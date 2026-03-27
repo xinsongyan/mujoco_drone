@@ -94,94 +94,27 @@ class PhasedStraightLineMission:
         return pos_target, mode, phase
 
 
-class FlyingMission:
-    """Pure flying mission that cycles through target poses.
 
-    By default generates a rectangular path from the origin using segment_length.
-    Custom poses can be supplied to override the default path.
+# Unified circular mission for both flying and rolling
+class CircularMission:
+    """Circular path mission for both flying and rolling modes.
+
+    Set mode to 'Flying' or 'Rolling' to select height and mode label.
     """
-
-    def __init__(
-        self,
-        poses=None,
-        segment_length=1.0,
-        flying_z=0.35,
-        segment_duration=3.0,
-        hold_duration=0.5,
-        cycles=1,
-        camera_azimuth=-125.0,
-        camera_elevation=-45.0,
-        camera_distance=3.0,
-        camera_lookat=(0.5, 0.5, 0.35),
-    ):
-        if poses is None:
-            s = float(segment_length)
-            z = float(flying_z)
-            poses = [
-                [0.0, 0.0, z],
-                [s,   0.0, z],
-                [s,   s,   z],
-                [0.0, s,   z],
-            ]
-        poses = np.array(poses, dtype=float)
-        if poses.ndim != 2 or poses.shape[1] != 3 or poses.shape[0] < 2:
-            raise ValueError("poses must be shape (N, 3) with N >= 2")
-
-        self.poses = poses.copy()
-        self.num_poses = int(poses.shape[0])
-        self.segment_duration = float(segment_duration)
-        self.hold_duration = float(hold_duration)
-        self.cycles = int(cycles)
-
-        if self.segment_duration <= 0.0:
-            raise ValueError("segment_duration must be > 0")
-        if self.hold_duration < 0.0:
-            raise ValueError("hold_duration must be >= 0")
-        if self.cycles <= 0:
-            raise ValueError("cycles must be > 0")
-
-        self.phase_duration = self.segment_duration + self.hold_duration
-        self.loop_duration = float(self.num_poses) * self.phase_duration
-        self.mission_duration = self.loop_duration * float(self.cycles)
-        self.camera_azimuth = float(camera_azimuth)
-        self.camera_elevation = float(camera_elevation)
-        self.camera_distance = float(camera_distance)
-        self.camera_lookat = np.array(camera_lookat, dtype=float).copy()
-        if self.camera_lookat.shape != (3,):
-            raise ValueError("camera_lookat must be shape (3,)")
-
-    def target_and_mode(self, t):
-        t_clamped = min(max(float(t), 0.0), self.mission_duration)
-        t_loop = t_clamped % self.loop_duration
-        phase_idx = int(t_loop // self.phase_duration)
-        phase_time = t_loop - phase_idx * self.phase_duration
-
-        p_start = self.poses[phase_idx]
-        p_end = self.poses[(phase_idx + 1) % self.num_poses]
-
-        if phase_time <= self.segment_duration:
-            alpha = phase_time / self.segment_duration
-            pos_target = (1.0 - alpha) * p_start + alpha * p_end
-        else:
-            pos_target = p_end.copy()
-
-        return np.array(pos_target, dtype=float), "Flying", phase_idx + 1
-
-
-class RollingMission:
-    """Pure rolling mission that tracks a circular path."""
 
     def __init__(
         self,
         center,
         radius=0.4,
         omega=0.4,
+        mode="Rolling",
+        flying_z=0.35,
         rolling_z=0.2,
         cycles=1,
         camera_azimuth=-125.0,
         camera_elevation=-45.0,
         camera_distance=3.0,
-        camera_lookat=(0.0, 0.0, 0.2),
+        camera_lookat=None,
     ):
         self.center = np.array(center, dtype=float).copy()
         if self.center.shape != (3,):
@@ -189,11 +122,17 @@ class RollingMission:
 
         self.radius = float(radius)
         self.omega = float(omega)
+        self.mode = mode  # "Flying" or "Rolling"
+        self.flying_z = float(flying_z)
         self.rolling_z = float(rolling_z)
         self.cycles = int(cycles)
         self.camera_azimuth = float(camera_azimuth)
         self.camera_elevation = float(camera_elevation)
         self.camera_distance = float(camera_distance)
+        if camera_lookat is None:
+            camera_lookat = (
+                float(center[0]), float(center[1]), self.flying_z if mode == "Flying" else self.rolling_z
+            )
         self.camera_lookat = np.array(camera_lookat, dtype=float).copy()
         if self.camera_lookat.shape != (3,):
             raise ValueError("camera_lookat must be shape (3,)")
@@ -220,10 +159,32 @@ class RollingMission:
 
     def target_and_mode(self, t):
         t_clamped = min(max(float(t), 0.0), self.mission_duration)
-        xy = self.sample_circle_xy(t_clamped)
+        theta = self.omega * t_clamped + np.pi
+        xy = np.array([
+            self.center[0] + self.radius * np.cos(theta),
+            self.center[1] + self.radius * np.sin(theta),
+        ], dtype=float)
         phase_deg = np.degrees((self.omega * t_clamped) % (2.0 * np.pi))
-        pos_target = np.array([xy[0], xy[1], self.rolling_z], dtype=float)
-        return pos_target, "Rolling", phase_deg
+        z = self.flying_z if self.mode == "Flying" else self.rolling_z
+        pos_target = np.array([xy[0], xy[1], z], dtype=float)
+
+        # Velocity target (derivative of position)
+        v_xy = np.array([
+            -self.radius * self.omega * np.sin(theta),
+            self.radius * self.omega * np.cos(theta)
+        ], dtype=float)
+        v_z = 0.0
+        vel_target = np.array([v_xy[0], v_xy[1], v_z], dtype=float)
+
+        # Acceleration target (second derivative)
+        a_xy = np.array([
+            -self.radius * self.omega**2 * np.cos(theta),
+            -self.radius * self.omega**2 * np.sin(theta)
+        ], dtype=float)
+        a_z = 0.0
+        acc_target = np.array([a_xy[0], a_xy[1], a_z], dtype=float)
+
+        return pos_target, vel_target, acc_target, self.mode, phase_deg
 
 class PhaseCircleMission:
     """Phase-based circular mission for switching rolling/flying controllers.
@@ -291,8 +252,29 @@ class PhaseCircleMission:
 
     def target_and_mode(self, t):
         t_clamped = min(max(float(t), 0.0), self.mission_duration)
-        xy = self.sample_circle_xy(t_clamped)
+        theta = self.omega * t_clamped + np.pi
+        xy = np.array([
+            self.center[0] + self.radius * np.cos(theta),
+            self.center[1] + self.radius * np.sin(theta),
+        ], dtype=float)
         mode, phase_deg = self.mode_from_time(t_clamped)
         z = self.rolling_z if mode == "Rolling" else self.flying_z
         pos_target = np.array([xy[0], xy[1], z], dtype=float)
-        return pos_target, mode, phase_deg
+
+        # Velocity target (derivative of position)
+        v_xy = np.array([
+            -self.radius * self.omega * np.sin(theta),
+            self.radius * self.omega * np.cos(theta)
+        ], dtype=float)
+        v_z = 0.0
+        vel_target = np.array([v_xy[0], v_xy[1], v_z], dtype=float)
+
+        # Acceleration target (second derivative)
+        a_xy = np.array([
+            -self.radius * self.omega**2 * np.cos(theta),
+            -self.radius * self.omega**2 * np.sin(theta)
+        ], dtype=float)
+        a_z = 0.0
+        acc_target = np.array([a_xy[0], a_xy[1], a_z], dtype=float)
+
+        return pos_target, vel_target, acc_target, mode, phase_deg

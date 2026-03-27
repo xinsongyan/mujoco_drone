@@ -1,6 +1,8 @@
+
 import numpy as np
-import transformations as tf 
+import transformations as tf
 import time
+from simple_pid import PID
 
 
 def hat(omega):
@@ -38,12 +40,23 @@ class SE3Controller:
         self.user_input = user_input
         self.se = state_estimator
         # Initialize any necessary parameters for SE(3) control
-        self.k_pos_xy = 30.0  # Position gain for x/y
+        self.k_pos_xy = 50.0  # Position gain for x/y
         self.k_pos_z = 80.0   # Position gain for z
         self.k_vel_xy = 5.0   # Velocity gain for x/y
         self.k_vel_z = 10.0    # Velocity gain for z
         self.k_rot = 30.0   # Rotation gain
         self.k_omega = 1.0 # Angular velocity gain
+
+
+        # PID controller for z (altitude)
+        self.pid_z = PID(
+            Kp=0.0,  # Proportional gain
+            Ki=10.0,  # You can tune this
+            Kd=0.0,  # You can tune this
+            setpoint=0.0,
+            output_limits=(-100.0, 100.0),
+            sample_time=0.002
+        )
 
 
         self.m = self.se.total_mass  # Mass of the drone in kg
@@ -63,6 +76,11 @@ class SE3Controller:
 
         pos_err = pos_target - self.se.base_pos
         vel_err = vel_target - self.se.base_vel_lin_global
+
+        # # Use PID for z
+        # self.pid_z.setpoint = pos_target[2]
+        # pid_z_out = self.pid_z(self.se.base_pos[2])
+
         acc_cmd = np.array(
             [
                 self.k_pos_xy * pos_err[0] + self.k_vel_xy * vel_err[0] + acc_target[0],

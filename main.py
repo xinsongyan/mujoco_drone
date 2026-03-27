@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QApplication
 from mujoco_drone.drone import SimpleDrone
 from mujoco_drone.dashboard import DroneSimulationDashboard
 from mujoco_drone.visuals import draw_thrust_visualization, draw_pos_target_sphere
-from mujoco_drone.mission import PhasedStraightLineMission, FlyingMission, RollingMission, PhaseCircleMission
+from mujoco_drone.mission import PhasedStraightLineMission, CircularMission, PhaseCircleMission
 
 # Pause state
 paused = False
@@ -34,14 +34,14 @@ def key_callback(keycode):
 
 # ── Mission selector ─────────────────────────────────────────────────────────
 # Set MISSION to "phased_straight_line", "flying", "rolling", or "phase_circle"
-MISSION = "phased_straight_line"
+MISSION = "phase_circle"
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 # Offscreen renderer can fail on some Linux/GLX setups. If that happens,
 # recording will be disabled at runtime and simulation will continue.
 
-ENABLE_RECORDING = False
+ENABLE_RECORDING = True
 ENABLE_DEBUG_DRAW = False  # Default, can be overridden by CLI
 ENABLE_DASHBOARD = False  # Default, can be overridden by CLI
 
@@ -49,21 +49,6 @@ ENABLE_DASHBOARD = False  # Default, can be overridden by CLI
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="MuJoCo Drone Simulation")
-    parser.add_argument("--record", dest="record", action="store_true", help="Enable video recording")
-    parser.add_argument("--no-record", dest="record", action="store_false", help="Disable video recording")
-    parser.set_defaults(record=False)
-    parser.add_argument("--debug-draw", dest="debug_draw", action="store_true", help="Enable debug drawing (thrust/target)")
-    parser.add_argument("--no-debug-draw", dest="debug_draw", action="store_false", help="Disable debug drawing (thrust/target)")
-    parser.set_defaults(debug_draw=False)
-    parser.add_argument("--dashboard", dest="dashboard", action="store_true", help="Enable dashboard window")
-    parser.add_argument("--no-dashboard", dest="dashboard", action="store_false", help="Disable dashboard window")
-    parser.set_defaults(dashboard=False)
-    args = parser.parse_args()
-
-    ENABLE_RECORDING = args.record
-    ENABLE_DEBUG_DRAW = args.debug_draw
-    ENABLE_DASHBOARD = args.dashboard
 
     # Initialize dashboard if enabled
     dashboard = None
@@ -75,23 +60,26 @@ if __name__ == "__main__":
 
     # Build and inject mission
     if MISSION == "flying":
-        mission = FlyingMission(
-            segment_length=1.0,
-            flying_z=0.35,
-            segment_duration=3.0,
-            hold_duration=0.5,
+        start = drone.state_estimator.base_pos.copy()
+        radius = 0.4
+        mission = CircularMission(
+            center=[start[0] + radius, start[1], drone.cage_radius],
+            radius=radius,
+            omega=0.4,
+            mode="Flying",
             cycles=1,
+            camera_lookat=(radius, 0.0, 0.35)
         )
     elif MISSION == "rolling":
         start = drone.state_estimator.base_pos.copy()
         radius = 0.4
-        mission = RollingMission(
-            center=[start[0]+radius, start[1], drone.cage_radius],
+        mission = CircularMission(
+            center=[start[0] + radius, start[1], drone.cage_radius],
             radius=radius,
             omega=0.4,
-            rolling_z=drone.cage_radius,
+            mode="Rolling",
             cycles=1,
-            camera_lookat=(radius, 0.0, 0.2)
+            camera_lookat=(radius, 0.0, drone.cage_radius)
         )
     elif MISSION == "phase_circle":
         start = drone.state_estimator.base_pos.copy()
@@ -106,7 +94,7 @@ if __name__ == "__main__":
     else:  # "phased_straight_line"
         mission = PhasedStraightLineMission(
             start=drone.state_estimator.base_pos.copy(),
-            segment_length=0.4,
+            segment_length=0.2,
             line_speed=0.08,
             rolling_z=drone.cage_radius,
             flying_z=0.35,
@@ -115,6 +103,7 @@ if __name__ == "__main__":
 
     # Recording configuration
     record_duration_s = float(drone.mission_duration)
+    print(f"Mission duration: {record_duration_s:.2f} seconds (recording will stop after this time)")
     mission_obj = drone.mission
     mission_name = mission_obj.__class__.__name__
     record_fps = 30
@@ -173,20 +162,27 @@ if __name__ == "__main__":
                         last_record_t = drone.d.time - record_dt
 
                     elapsed = drone.d.time - record_start_t
+                    
                     if recording_enabled and elapsed <= record_duration_s and (drone.d.time - last_record_t) >= record_dt:
                         try:
+                            
                             renderer.update_scene(drone.d, camera=viewer.cam)
                             frame = renderer.render()
                             frames.append(frame)
-
+             
                             base_pos = drone.state_estimator.base_pos
                             control_mode = getattr(drone, "control_mode", type(drone.controller).__name__)
+                            # Get reference position from mission
+                            ref_pos, *_ = mission_obj.target_and_mode(drone.d.time)
                             position_log.append((
                                 float(drone.d.time),
                                 float(elapsed),
                                 float(base_pos[0]),
                                 float(base_pos[1]),
                                 float(base_pos[2]),
+                                float(ref_pos[0]),
+                                float(ref_pos[1]),
+                                float(ref_pos[2]),
                                 str(control_mode),
                             ))
 
@@ -198,6 +194,7 @@ if __name__ == "__main__":
                             print(f"Recording disabled during runtime ({exc})")
 
                     if recording_enabled and elapsed > record_duration_s and len(frames) > 0:
+                        print(f"Recording complete: {len(frames)} frames captured over {elapsed:.2f} seconds")
                         os.makedirs("log", exist_ok=True)
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         run_name = f"{timestamp}_{mission_name}_sim_{int(record_duration_s)}s"
@@ -209,7 +206,7 @@ if __name__ == "__main__":
 
                         with open(pos_path, "w", newline="") as csvfile:
                             writer = csv.writer(csvfile)
-                            writer.writerow(["sim_time_s", "elapsed_s", "x_m", "y_m", "z_m", "control_mode"])
+                            writer.writerow(["sim_time_s", "elapsed_s", "x_m", "y_m", "z_m", "ref_x_m", "ref_y_m", "ref_z_m", "control_mode"])
                             writer.writerows(position_log)
 
                         print(f"Saved recording: {out_path} ({len(frames)} frames at {record_fps} FPS)")
@@ -234,8 +231,9 @@ if __name__ == "__main__":
                     f"at: [{cam.lookat[0]:.2f}, {cam.lookat[1]:.2f}, {cam.lookat[2]:.2f}]"
                 )
                 viewer.set_texts([
-                    (0, 0, f"Time: {drone.d.time:.2f}", f"Paused: {paused} | Control Mode: {control_mode}"),
-                    (0, 1, "Viewer Camera", cam_text),
+                    (0, 0, f"Time: {drone.d.time:.2f}  Elapsed: {drone.d.time - record_start_t if record_start_t is not None else 0:.2f}",
+                     f"Paused: {paused} | Control Mode: {control_mode}"),
+                    # (0, 1, "Viewer Camera", cam_text),
                 ])
 
                 # Always sync the viewer to process events / render
