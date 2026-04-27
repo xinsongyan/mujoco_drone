@@ -2,6 +2,7 @@ import pygame
 import threading
 import time
 import os
+import warnings
 
 class GamepadInput:
     def __init__(self, update_freq=50):
@@ -13,16 +14,19 @@ class GamepadInput:
         pygame.joystick.init()
 
         if pygame.joystick.get_count() == 0:
-            raise RuntimeError("No joystick detected.")
-        
-        self.joystick = pygame.joystick.Joystick(0)
-        self.joystick.init()
-        print(f"Joystick name: {self.joystick.get_name()}")
-        print("Note: F710 gamepad should be set to X mode (not D mode)")
-        
+            warnings.warn("No joystick detected. Continuing without gamepad input.")
+            self.joystick = None
+            self.num_axes = 0
+            self.num_buttons = 0
+        else:
+            self.joystick = pygame.joystick.Joystick(0)
+            self.joystick.init()
+            print(f"Joystick name: {self.joystick.get_name()}")
+            print("Note: F710 gamepad should be set to X mode (not D mode)")
+            self.num_axes = self.joystick.get_numaxes()
+            self.num_buttons = self.joystick.get_numbuttons()
+
         # Store states
-        self.num_axes = self.joystick.get_numaxes()
-        self.num_buttons = self.joystick.get_numbuttons()
         self.axis_values = [0.0] * self.num_axes
         self.button_states = [False] * self.num_buttons
 
@@ -65,6 +69,8 @@ class GamepadInput:
                 # Video system may not be available in thread, skip event pump
                 pass
             try:
+                if self.joystick is None:
+                    continue
                 for i in range(self.num_axes):
                     self.axis_values[i] = self.joystick.get_axis(i)
                 for i in range(self.num_buttons):
