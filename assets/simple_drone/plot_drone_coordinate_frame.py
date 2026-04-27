@@ -29,7 +29,7 @@ def load_drone(caged=False):
     print(f"xml_path: {xml_path} ({type(xml_path)})")
     
     model = mujoco.MjModel.from_xml_path(xml_path)
-    model.vis.global_.offwidth = 1080
+    model.vis.global_.offwidth = 1920
     model.vis.global_.offheight = 1080
     data = mujoco.MjData(model)
     
@@ -41,19 +41,19 @@ if __name__ == "__main__":
     model, data = load_drone(caged=True)
     
     # set model position
-    data.qpos[:3] = [0.4, 0.4, 0.2] # Set initial position (x, y, z)
+    data.qpos[:3] = [0.4, 0.4, 0.4] # Set initial position (x, y, z)
     
     # set model orientation from euler angles (roll, pitch, yaw)
     data.qpos[3:7] = tf.quaternion_from_euler(0, np.deg2rad(30), np.deg2rad(-30)) # No initial rotation
 
-    renderer = mujoco.Renderer(model, width=1080, height=1080)
+    renderer = mujoco.Renderer(model, width=1920, height=1080)
     
     
     with mujoco.viewer.launch_passive(model, data) as viewer:
-        viewer.cam.azimuth = 125
-        viewer.cam.elevation = -25
+        viewer.cam.azimuth = 120
+        viewer.cam.elevation = -20
         viewer.cam.distance = 1.2
-        viewer.cam.lookat[:] = [0.25, 0.25, 0.12]
+        viewer.cam.lookat[:] = [0.46, 0.33, 0.38]
         pyautogui.hotkey('shift', 'tab')
         saved = False
         while viewer.is_running():
@@ -78,6 +78,7 @@ if __name__ == "__main__":
                     f"coordinate_frame_{timestamp}.png",
                 )
                 imageio.imwrite(output_path, image)
+                print(f"Saved image to {output_path}")
                 saved = True
             
 

@@ -5,6 +5,8 @@ venv/
 log/
 *.pyc
 __pycache__/
+*.mp4
+*.png
 # Hide dot-prefixed backup files
 .*.bkp
 .$*

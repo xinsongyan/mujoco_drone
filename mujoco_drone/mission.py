@@ -91,7 +91,13 @@ class PhasedStraightLineMission:
             z = self.rolling_z
 
         pos_target = np.array([x, y, z], dtype=float)
-        return pos_target, mode, phase
+        # Velocity: constant along x, zero elsewhere
+        vel_target = np.array([self.line_speed, 0.0, 0.0], dtype=float)
+        # Acceleration: zero (constant speed)
+        acc_target = np.array([0.0, 0.0, 0.0], dtype=float)
+        # Phase angle: progress along path, mapped to 0-360 deg
+        phase_deg = 360.0 * s / self.total_length
+        return pos_target, vel_target, acc_target, mode, phase_deg
 
 
 

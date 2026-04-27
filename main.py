@@ -34,14 +34,14 @@ def key_callback(keycode):
 
 # ── Mission selector ─────────────────────────────────────────────────────────
 # Set MISSION to "phased_straight_line", "flying", "rolling", or "phase_circle"
-MISSION = "phase_circle"
+MISSION = "phased_straight_line"
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 # Offscreen renderer can fail on some Linux/GLX setups. If that happens,
 # recording will be disabled at runtime and simulation will continue.
 
-ENABLE_RECORDING = True
+ENABLE_RECORDING = False
 ENABLE_DEBUG_DRAW = False  # Default, can be overridden by CLI
 ENABLE_DASHBOARD = False  # Default, can be overridden by CLI
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     else:  # "phased_straight_line"
         mission = PhasedStraightLineMission(
             start=drone.state_estimator.base_pos.copy(),
-            segment_length=0.2,
+            segment_length=0.4,
             line_speed=0.08,
             rolling_z=drone.cage_radius,
             flying_z=0.35,
