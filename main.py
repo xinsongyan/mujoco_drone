@@ -15,9 +15,8 @@ import numpy as np
 import time
 import imageio.v2 as imageio
 
-from PyQt5.QtWidgets import QApplication
 from mujoco_drone.drone import SimpleDrone
-from mujoco_drone.dashboard import DroneSimulationDashboard
+from mujoco_drone.lightweight_dashboard import LightweightDashboard
 from mujoco_drone.visuals import draw_thrust_visualization, draw_pos_target_sphere
 from mujoco_drone.mission import PhasedStraightLineMission, CircularMission, PhaseCircleMission
 
@@ -43,7 +42,7 @@ MISSION = "phased_straight_line"
 
 ENABLE_RECORDING = False
 ENABLE_DEBUG_DRAW = False  # Default, can be overridden by CLI
-ENABLE_DASHBOARD = False  # Default, can be overridden by CLI
+ENABLE_DASHBOARD = True  # Default, can be overridden by CLI
 
 
 
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     # Initialize dashboard if enabled
     dashboard = None
     if ENABLE_DASHBOARD:
-        dashboard = DroneSimulationDashboard()
+        dashboard = LightweightDashboard()
 
     # Initialize the drone
     drone = SimpleDrone(caged=True)
@@ -214,7 +213,7 @@ if __name__ == "__main__":
                         break
 
 
-                    # Update dashboard every 10 steps
+                    # Update dashboard every 10 steps (~50 Hz feed; dashboard renders at 10 Hz independently)
                     if ENABLE_DASHBOARD and dashboard is not None and step_count % 10 == 0:
                         dashboard.update(drone, drone.d.time)
 
