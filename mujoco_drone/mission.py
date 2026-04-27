@@ -30,6 +30,8 @@ class TeleoperatedMission:
 
 
 
+
+
 class PhasedStraightLineMission:
     """Three-phase straight-line mission along +x.
 
@@ -284,3 +286,45 @@ class PhaseCircleMission:
         acc_target = np.array([a_xy[0], a_xy[1], a_z], dtype=float)
 
         return pos_target, vel_target, acc_target, mode, phase_deg
+
+def build_mission(drone, mission_name):
+    if mission_name == "flying":
+        start = drone.state_estimator.base_pos.copy()
+        radius = 0.4
+        return CircularMission(
+            center=[start[0] + radius, start[1], drone.cage_radius],
+            radius=radius,
+            omega=0.4,
+            mode="Flying",
+            cycles=1,
+            camera_lookat=(radius, 0.0, 0.35),
+        )
+    if mission_name == "rolling":
+        start = drone.state_estimator.base_pos.copy()
+        radius = 0.4
+        return CircularMission(
+            center=[start[0] + radius, start[1], drone.cage_radius],
+            radius=radius,
+            omega=0.4,
+            mode="Rolling",
+            cycles=1,
+            camera_lookat=(radius, 0.0, drone.cage_radius),
+        )
+    if mission_name == "phase_circle":
+        start = drone.state_estimator.base_pos.copy()
+        radius = 0.4
+        return PhaseCircleMission(
+            center=[start[0] + radius, start[1], drone.cage_radius],
+            radius=radius,
+            omega=0.4,
+            rolling_z=drone.cage_radius,
+            flying_z=0.35,
+        )
+
+    return PhasedStraightLineMission(
+        start=drone.state_estimator.base_pos.copy(),
+        segment_length=0.4,
+        line_speed=0.08,
+        rolling_z=drone.cage_radius,
+        flying_z=0.35,
+    )

@@ -119,3 +119,14 @@ class LightweightDashboard:
         if self._process.is_alive():
             self._process.terminate()
             self._process.join(timeout=2)
+
+
+def create_dashboard(enabled):
+    if not enabled:
+        return None
+    return LightweightDashboard()
+
+
+def maybe_update_dashboard(dashboard, enabled, step_count, drone):
+    if enabled and dashboard is not None and step_count % 10 == 0:
+        dashboard.update(drone, drone.d.time)
